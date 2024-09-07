@@ -1,0 +1,24 @@
+{
+  "name": "LLM::RetrievalAugmentedGeneration",
+  "description": "Package for doing LLM Retrieval Augment Generation (RAG).",
+  "version": "0.0.1",
+  "api": "0",
+  "perl": "6.d",
+  "authors": [
+    "Anton Antonov"
+  ],
+  "auth": "zef:antononcube",
+  "depends": [
+    "LLM::Functions:ver<0.1.25+>",
+    "LLM::Prompts:ver<0.2.3+>",
+    "ML::FindTextualAnswer:ver<0.2.6+>"
+  ],
+  "build-depends": [],
+  "test-depends": [],
+  "provides": {
+    "LLM::RetrievalAugmentedGeneration": "lib/RetrievalAugmentedGeneration.rakumod"
+  },
+  "resources": [],
+  "license": "Artistic-2.0",
+  "source-url": "https://github.com/antononcube/Raku-LLM-RetrievalAugmentedGeneration.git"
+}
