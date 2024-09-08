@@ -17,6 +17,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     has $.tokenizer = WhateverCode;
     has UInt:D $.version = 0;
     has $.location = Whatever;
+    has $.llm-configuration = Whatever;
 
     #======================================================
     # Creators
@@ -202,15 +203,56 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         #-------------------------------------------------------------
         # 3. Find the vector embeddings
-        my @vector_embeddings = $embed ?? llm-embedding(@verified_chunks, :$llm-evaluator) !! @verified_chunks;
+        my @vector_embeddings = do if $embed {
+            llm-embedding(@verified_chunks, :$llm-evaluator)
+        } else {
+            @verified_chunks
+        };
 
         #-------------------------------------------------------------
         # 4. Create/place the vector database.
-        %!database = @vector_embeddings.kv.Hash;
+        %!database = %chunks.keys Z=> @vector_embeddings;
         $!document-count = %content.elems;
         $!item-count = %!database.elems;
+        $!llm-configuration = $llm-evaluator.conf;
 
         # Result
+        return self;
+    }
+
+    #======================================================
+    # Import
+    #======================================================
+    method import($file) {
+        if !$file.IO.e {
+            die "Does not exist: ⎡$file⎦."
+        }
+        if !$file.IO.f {
+            die "Is not a file: ⎡$file⎦."
+        }
+
+        my %h = try from-json(slurp($file));
+
+        if $! {
+            die "Cannot ingest as a JSON file: ⎡$file⎦."
+        }
+
+        $!name = %h<name> // '';
+        $!id = %h<id> // '';
+        $!distance-function = %h<distance-function> // WhateverCode;
+        $!item-count = %h<item-count> // 0;
+        $!document-count = %h<document-count> // 0;
+        %!database = %h<database> // %();
+        %!text-chunks = %h<text-chunks> // %();
+        $!tokenizer = %h<tokenizer> // WhateverCode;
+        $!version = %h<version> // 0;
+        $!location = %h<location> // Whatever;
+        $!llm-configuration = %h<llm-configuration> // Whatever;
+
+        if $!llm-configuration ~~ Map:D && ($!llm-configuration<name>:exists) {
+            $!llm-configuration = llm-configuration($!llm-configuration<name>, |$!llm-configuration)
+        }
+
         return self;
     }
 
@@ -231,7 +273,9 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         # Export
         try {
-            spurt $file.IO, to-json(self.Hash);
+            my %h = self.Hash;
+            %h<llm-configuration> = %h<llm-configuration>.Hash.grep({ $_.key ∈ <name embedding-model> }).Hash;
+            spurt $file.IO, to-json(%h);
         }
 
         if $! {
@@ -250,6 +294,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
                     :$!name, :$!location, :$!version,
                     :$!item-count, :$!document-count,
                     :$!distance-function, :$!tokenizer,
+                    :$!llm-configuration,
                     :%!text-chunks,
                     :%!database
                 };
@@ -267,7 +312,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
                 when Whatever { $p.key => 'Whatever'}
                 when WhateverCode { $p.key => 'WhateverCode'}
                 when Callable { $p.key => $_.name }
-                default { $p.key => $_.Str }
+                default { $p.key => $_.raku }
             }
         }).Str;
     }
