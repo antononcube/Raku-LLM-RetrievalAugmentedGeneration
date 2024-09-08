@@ -224,7 +224,6 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             my $name = $!name;
             if !$name { $name = 'SemSe-' ~ now.DateTime.Str.trans(':'=>'.').substr(^19) }
             $file = $dirName ~ "/$name.json";
-            note (:$file);
         }
 
         # Save location
