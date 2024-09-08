@@ -15,7 +15,8 @@
     "Math::Nearest:ver<0.0.5+>",
     "Math::DistanceFunctions:ver<0.1.1+>",
     "XDG::BaseDirectory:ver<0.0.13+>:auth<zef:jonathanstowe>:api<1.0+>",
-    "UUID:ver<1.0.0>"
+    "UUID:ver<1.0.0>",
+    "JSON::Fast:ver<0.17+>"
   ],
   "build-depends": [],
   "test-depends": [],
