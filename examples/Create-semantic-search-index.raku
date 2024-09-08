@@ -31,7 +31,7 @@ my $llm-evaluator = llm-configuration("Gemini");
 my $tstart = now;
 $vdbObj.create-semantic-search-index(@chunks, method => 'by-max-tokens', max-tokens => 2048, :$llm-evaluator):!embed;
 my $tend = now;
-say "Time to make the semantic search index: {$tend - $tstart}.";
+say "Time to make the semantic search index: {$tend - $tstart} seconds.";
 
 say "Text chunks:";
 .say for $vdbObj.text-chunks.pairs.pick(6).sort(*.key);
@@ -44,7 +44,7 @@ $tstart = now;
 $vdbObj.export();
 $tend = now;
 
-say "...DONE; export time {$tend - $tstart}";
+say "...DONE; export time {$tend - $tstart} seconds.";
 
 say "Export file location : {$vdbObj.location}";
 
