@@ -59,7 +59,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     }
 
     #======================================================
-    # Partition into text chunks
+    # Utilities
     #======================================================
     # Note that this sub produces information loss since
     # the word groups would miss "meaningful" white space.
@@ -86,6 +86,14 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         return @partitions;
     }
 
+    multi sub pad-zeroes(Int:D $num, Int:D $nd) {
+        return sprintf('%0*d', $nd, $num);
+    }
+
+    multi sub pad-zeroes(Str:D $id, Int $nd) {
+        return $id;
+    }
+
     #======================================================
     # Create semantic index
     #======================================================
@@ -102,7 +110,14 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         return self.create-semantic-index(@content, |%args);
     }
 
-    multi method create-semantic-search-index(@content,
+    multi method create-semantic-search-index(@content, *%args) {
+        my $nd = @content.elems.log10.ceiling;
+        self.create-semantic-search-index(
+                @content.pairs.map({ pad-zeroes($_.key, $nd) => $_.value }).Hash,
+                |%args);
+    }
+
+    multi method create-semantic-search-index(%content,
                                               :$method is copy = Whatever,
                                               :&tokenizer is copy = WhateverCode,
                                               :$max-tokens is copy = Whatever,
@@ -139,7 +154,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         # 1.1. Heuristic paragraphs
         # 1.2. Tokens-count based splitting
         # 1.3. Do nothing is $method is 'asis'
-        my @chunks;
+        my %chunks;
         if $method.isa(Whatever) { $method = 'heuristic' }
 
         die 'The argument $method is expected to be a string or Whatever.'
@@ -147,31 +162,39 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         given $method {
             when $_ ∈ <heuristic paragraphs text-paragraphs> {
-                @chunks = @content.map(*.split(/\n\n+/, :g)).map(*.Slip);
+                %chunks =
+                        %content.map({
+                            my $k = $_.key;
+                            $_.value.split(/\n\n+/, :g).pairs.map({ $k ~ '.' ~ $_.key => $_.value }).Slip
+                        });
             }
             when $_ ∈ <tokens max-tokens by-max-tokens> {
-                @chunks = @content.map({ partition-words($_, max-chars => ceiling($max-tokens * $charsPerToken)) }).map(*.Slip);
+                %chunks = %content.map({
+                    my $k = $_.key;
+                    my @res = partition-words($_.value, max-chars => ceiling($max-tokens * $charsPerToken));
+                    @res.pairs.map({ $k ~ '.' ~ $_.key => $_.value }).Slip
+                })
             }
             when 'asis' {
-                @chunks = @content;
+                %chunks = %content;
             }
             default {
                 die "Unknown method for splitting text into embeddable chunks.";
             }
         }
 
-        %!text-chunks = @chunks.kv.Hash;
+        %!text-chunks = %chunks;
 
         #-------------------------------------------------------------
         # 2. Verify the text chunks are with size that is allowed
         # 2.1. Use tokenization function if available from the LLM or %args
         # 2.2. Otherwise assume a token is 2.5 characters on average
-        my @verified_chunks = @chunks.grep({ &tokenizer($_) <= $max-tokens });
+        my @verified_chunks = %chunks.values.grep({ &tokenizer($_) <= $max-tokens });
 
-        my $allChunksEmbeddable = @verified_chunks.elems == @chunks.elems;
+        my $allChunksEmbeddable = @verified_chunks.elems == %chunks.elems;
 
         if !$allChunksEmbeddable {
-            note "{ @chunks.elems - @verified_chunks.elems } of the obtained text chunks to embed are larger than the specified max tokens.";
+            note "{ %chunks.elems - @verified_chunks.elems } of the obtained text chunks to embed are larger than the specified max tokens.";
             return self;
         }
 
