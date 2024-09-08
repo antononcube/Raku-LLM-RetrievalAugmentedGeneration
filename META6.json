@@ -9,14 +9,19 @@
   ],
   "auth": "zef:antononcube",
   "depends": [
-    "LLM::Functions:ver<0.1.25+>",
+    "LLM::Functions:ver<0.2.0+>",
     "LLM::Prompts:ver<0.2.3+>",
-    "ML::FindTextualAnswer:ver<0.2.6+>"
+    "ML::FindTextualAnswer:ver<0.2.6+>",
+    "Math::Nearest:ver<0.0.5+>",
+    "Math::DistanceFunctions:ver<0.1.1+>",
+    "XDG::BaseDirectory:ver<0.0.13+>:auth<zef:jonathanstowe>:api<1.0+>",
+    "UUID:ver<1.0.0>"
   ],
   "build-depends": [],
   "test-depends": [],
   "provides": {
-    "LLM::RetrievalAugmentedGeneration": "lib/RetrievalAugmentedGeneration.rakumod"
+    "LLM::RetrievalAugmentedGeneration": "lib/LLM/RetrievalAugmentedGeneration.rakumod",
+    "LLM::RetrievalAugmentedGeneration::VectorDatabase": "lib/LLM/RetrievalAugmentedGeneration/VectorDatabase.rakumod"
   },
   "resources": [],
   "license": "Artistic-2.0",
