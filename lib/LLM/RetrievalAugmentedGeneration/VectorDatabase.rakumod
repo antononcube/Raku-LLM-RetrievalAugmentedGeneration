@@ -2,6 +2,8 @@ use v6.d;
 
 use UUID;
 use LLM::Functions;
+use XDG::BaseDirectory :terms;
+use JSON::Fast;
 
 class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
@@ -208,5 +210,68 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         # Result
         return self;
+    }
+
+    #======================================================
+    # Export
+    #======================================================
+    method export($file is copy = Whatever) {
+        if $file.isa(Whatever) {
+            my $dirName = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
+            if !$dirName.IO.d { $dirName.IO.mkdir }
+            my $name = $!name;
+            if !$name { $name = 'SemSe-' ~ now.DateTime.Str.trans(':'=>'.').substr(^19) }
+            $file = $dirName ~ "/$name.json";
+            note (:$file);
+        }
+
+#        if !$file.IO.f {
+#            die 'The first arugment is expected to be a valid file name or Whatever.'
+#        }
+
+        # Save location
+        $!location = $file.IO.Str;
+
+        # Export
+        try {
+            spurt $file.IO, to-json(self.Hash);
+        }
+
+        if $! {
+            note "Error trying to export to file ⎡{$file.IO.Str}⎦:", $!.^name;
+        }
+        return self;
+    }
+
+    #======================================================
+    # Representation
+    #======================================================
+    #| To Hash
+    multi method Hash(::?CLASS:D:-->Hash) {
+        return
+                {
+                    :$!name, :$!location, :$!version,
+                    :$!item-count, :$!document-count,
+                    :$!distance-function, :$!tokenizer,
+                    :%!text-chunks,
+                    :%!database
+                };
+    }
+
+    #| To string
+    multi method Str(::?CLASS:D:-->Str) {
+        return self.gist;
+    }
+
+    #| To gist
+    multi method gist(::?CLASS:D:-->Str) {
+        return self.Hash.map( -> $p {
+            given $p.value {
+                when Whatever { $p.key => 'Whatever'}
+                when WhateverCode { $p.key => 'WhateverCode'}
+                when Callable { $p.key => $_.name }
+                default { $p.key => $_.Str }
+            }
+        }).Str;
     }
 }
