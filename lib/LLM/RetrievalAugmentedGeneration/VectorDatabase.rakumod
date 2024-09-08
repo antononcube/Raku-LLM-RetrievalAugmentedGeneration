@@ -207,6 +207,8 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         #-------------------------------------------------------------
         # 4. Create/place the vector database.
         %!database = @vector_embeddings.kv.Hash;
+        $!document-count = %content.elems;
+        $!item-count = %!database.elems;
 
         # Result
         return self;
@@ -224,10 +226,6 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             $file = $dirName ~ "/$name.json";
             note (:$file);
         }
-
-#        if !$file.IO.f {
-#            die 'The first arugment is expected to be a valid file name or Whatever.'
-#        }
 
         # Save location
         $!location = $file.IO.Str;
