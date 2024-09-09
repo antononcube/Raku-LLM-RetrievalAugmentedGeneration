@@ -29,45 +29,24 @@ my $tend = now;
 
 say "...DONE; import time { $tend - $tstart } seconds.";
 
+say $vdbObj;
 
 .say for |$vdbObj.text-chunks.pick(3);
 
 .say for |$vdbObj.database.pick(3);
 
-my $query = 'How the USA election system with its two parties is presented?';
-#my $query = 'What is the state of string theory?';
+my $query = 'What is the state of string theory?';
 my @vec = |llm-embedding($query, llm-evaluator => $vdbObj.llm-configuration).head;
 
 say (:@vec);
 
-#`[
-say "Finder construction...";
+my @res = $vdbObj.nearest($query, 30, prop => <label distance>, distance-function => &euclidean-distance);
 
-$tstart = now;
-my &finder = nearest(@labeledVectors, method => 'KDTree');
-$tend = now;
+my @dsScores = @res.map({
+    %( label => $_[0], distance => $_[1], text => $vdbObj.text-chunks{$_[0]} )
+});
 
-say "...DONE. Construction time: {$tend - $tstart} seconds.";
-
-$tstart = now;
-my @res = &finder(@vec, 12, prop => <label>);
-$tend = now;
-
-say "Computation time: {$tend - $tstart} seconds.";
-
-say (:@res);
-]
-
-my @dsScores =
-        $vdbObj.database.map({ %(
-            label => $_.key,
-            distance => euclidean-distance($_.value, @vec),
-            text => $vdbObj.text-chunks{$_.key}
-        ) }).Array;
-
-@dsScores .= sort({ $_<distance> });
-
-say to-pretty-table(@dsScores.head(30), field-names => <distance label text>);
+say to-pretty-table(@dsScores, field-names => <distance label text>);
 
 say "\n\n\n";
 
@@ -79,7 +58,6 @@ my $answer = llm-synthesize([
 ]);
 
 say (:$answer);
-
 
 
 
