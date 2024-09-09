@@ -18,6 +18,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     has $.document-count = 0;
     has %.database;
     has %.text-chunks;
+    has %.tags;
     has $.tokenizer = WhateverCode;
     has UInt:D $.version = 0;
     has $.location = Whatever;
@@ -197,26 +198,31 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         # 2. Verify the text chunks are with size that is allowed
         # 2.1. Use tokenization function if available from the LLM or %args
         # 2.2. Otherwise assume a token is 2.5 characters on average
-        my @verified_chunks = %chunks.values.grep({ &tokenizer($_) <= $max-tokens });
+        my @verified-chunks = %chunks.values.grep({ &tokenizer($_) <= $max-tokens });
 
-        my $allChunksEmbeddable = @verified_chunks.elems == %chunks.elems;
+        my $allChunksEmbeddable = @verified-chunks.elems == %chunks.elems;
 
         if !$allChunksEmbeddable {
-            note "{ %chunks.elems - @verified_chunks.elems } of the obtained text chunks to embed are larger than the specified max tokens.";
+            note "{ %chunks.elems - @verified-chunks.elems } of the obtained text chunks to embed are larger than the specified max tokens.";
             return self;
         }
 
         #-------------------------------------------------------------
         # 3. Find the vector embeddings
-        my @vector_embeddings = do if $embed {
-            llm-embedding(@verified_chunks, :$llm-evaluator)
-        } else {
-            @verified_chunks
-        };
+        my @vector-embeddings = Empty;
+        if $embed {
+           @vector-embeddings = llm-embedding(@verified-chunks, :$llm-evaluator);
+           @vector-embeddings .= deepmap({.Num})
+        }
 
         #-------------------------------------------------------------
         # 4. Create/place the vector database.
-        %!database = %chunks.keys Z=> @vector_embeddings;
+        if @vector-embeddings {
+            %!database = %chunks.keys Z=> @vector-embeddings;
+        } else {
+            %!database = Empty
+        }
+
         $!document-count = %content.elems;
         $!item-count = %!database.elems;
         $!llm-configuration = $llm-evaluator.conf;
@@ -311,9 +317,10 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         if $file.isa(Whatever) {
             my $dirName = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
             if !$dirName.IO.d { $dirName.IO.mkdir }
-            my $name = $!name;
-            if !$name { $name = 'SemSe-' ~ now.DateTime.Str.trans(':'=>'.').substr(^19) }
-            $file = $dirName ~ "/$name.json";
+            my $id = $!id;
+            if !$id { $id = DateTime.Str.trans(':'=>'.').substr(^19) }
+            $id = "SemSe-$id";
+            $file = $dirName ~ "/$id.json";
         }
 
         # Save location
