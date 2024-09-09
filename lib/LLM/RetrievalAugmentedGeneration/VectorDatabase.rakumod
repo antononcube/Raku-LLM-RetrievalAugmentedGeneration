@@ -125,6 +125,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
                                               :&tokenizer is copy = WhateverCode,
                                               :$max-tokens is copy = Whatever,
                                               Bool:D :$embed = True,
+                                              Bool:D :$export = True,
                                               *%args) {
 
         #-------------------------------------------------------------
@@ -216,6 +217,10 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         $!item-count = %!database.elems;
         $!llm-configuration = $llm-evaluator.conf;
 
+        #-------------------------------------------------------------
+        # Export
+        self.export() if $export;
+
         # Result
         return self;
     }
@@ -291,7 +296,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     multi method Hash(::?CLASS:D:-->Hash) {
         return
                 {
-                    :$!name, :$!location, :$!version,
+                    :$!id, :$!name, :$!location, :$!version,
                     :$!item-count, :$!document-count,
                     :$!distance-function, :$!tokenizer,
                     :$!llm-configuration,
@@ -307,13 +312,6 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
     #| To gist
     multi method gist(::?CLASS:D:-->Str) {
-        return self.Hash.map( -> $p {
-            given $p.value {
-                when Whatever { $p.key => 'Whatever'}
-                when WhateverCode { $p.key => 'WhateverCode'}
-                when Callable { $p.key => $_.name }
-                default { $p.key => $_.raku }
-            }
-        }).Str;
+        return 'VectorDatabase' ~ (<id name elements sources> Z=> self.Hash<id name item-count document-count>).List.raku;
     }
 }
