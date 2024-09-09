@@ -29,7 +29,7 @@ my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(name => 'No83
 my $llm-evaluator = llm-configuration("Gemini");
 
 my $tstart = now;
-$vdbObj.create-semantic-search-index(@chunks, method => 'by-max-tokens', max-tokens => 2048, :$llm-evaluator):!embed;
+$vdbObj.create-semantic-search-index(@chunks, method => 'by-max-tokens', max-tokens => 2048, :$llm-evaluator, :!export, :embed);
 my $tend = now;
 say "Time to make the semantic search index: {$tend - $tstart} seconds.";
 

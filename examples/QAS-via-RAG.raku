@@ -13,13 +13,14 @@ use LLM::RetrievalAugmentedGeneration::VectorDatabase;
 
 use Data::Reshapers;
 use Data::Summarizers;
+use Data::TypeSystem;
 use Math::Nearest;
 use Math::DistanceFunctions;
 
 my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
 
 my $dirName = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
-my $fileName = $dirName ~ '/No833-gemini.json';
+my $fileName = $dirName ~ '/SemSe-No833.json';
 
 say "Importing vector database...";
 
@@ -38,9 +39,17 @@ say $vdbObj;
 my $query = 'What is the state of string theory?';
 my @vec = |llm-embedding($query, llm-evaluator => $vdbObj.llm-configuration).head;
 
-say (:@vec);
+@vec .= deepmap(*.Num);
 
-my @res = $vdbObj.nearest($query, 30, prop => <label distance>, distance-function => &euclidean-distance);
+say (:@vec);
+say 'deduce-type(@vec) : ', deduce-type(@vec);
+
+say 'deduce-type($vdbObj.database) : ', deduce-type($vdbObj.database);
+
+$tstart = now;
+my @res = $vdbObj.nearest($query, 30, prop => <label distance>, method => 'Scan', distance-function => -> @x, @y { 1 - sum(@x >>*<< @y)});
+$tend = now;
+say "Time to find nearest neighbors {$tend - $tstart} seconds.";
 
 my @dsScores = @res.map({
     %( label => $_[0], distance => $_[1], text => $vdbObj.text-chunks{$_[0]} )
@@ -50,6 +59,7 @@ say to-pretty-table(@dsScores, field-names => <distance label text>);
 
 say "\n\n\n";
 
+#`[
 my $answer = llm-synthesize([
     'Come up with a narration answering this question:',
     $query,
@@ -58,6 +68,7 @@ my $answer = llm-synthesize([
 ]);
 
 say (:$answer);
+]
 
 
 
