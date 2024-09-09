@@ -14,11 +14,12 @@ use LLM::RetrievalAugmentedGeneration::VectorDatabase;
 use Data::Reshapers;
 use Data::Summarizers;
 use Math::Nearest;
+use Math::DistanceFunctions;
 
 my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
 
 my $dirName = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
-my $fileName = $dirName ~ '/No833.json';
+my $fileName = $dirName ~ '/No833-gemini.json';
 
 say "Importing vector database...";
 
@@ -26,20 +27,18 @@ my $tstart = now;
 $vdbObj.import($fileName);
 my $tend = now;
 
-say "...DONE; import time {$tend - $tstart} seconds.";
+say "...DONE; import time { $tend - $tstart } seconds.";
 
 
 .say for |$vdbObj.text-chunks.pick(3);
 
 .say for |$vdbObj.database.pick(3);
 
-#my $query = 'How the USA election system with its two parties is presented?';
-my $query = 'What is the state of string theory?';
+my $query = 'How the USA election system with its two parties is presented?';
+#my $query = 'What is the state of string theory?';
 my @vec = |llm-embedding($query, llm-evaluator => $vdbObj.llm-configuration).head;
 
 say (:@vec);
-
-my @labeledVectors = $vdbObj.database.invert.pairs;
 
 #`[
 say "Finder construction...";
@@ -59,11 +58,16 @@ say "Computation time: {$tend - $tstart} seconds.";
 say (:@res);
 ]
 
-my @dsScores = $vdbObj.database.map({ %( label => $_.key, dot => sum($_.value >>*<< @vec), text => $vdbObj.text-chunks{$_.key} ) }).Array;
+my @dsScores =
+        $vdbObj.database.map({ %(
+            label => $_.key,
+            distance => euclidean-distance($_.value, @vec),
+            text => $vdbObj.text-chunks{$_.key}
+        ) }).Array;
 
-@dsScores .= sort({ -$_<dot> });
+@dsScores .= sort({ $_<distance> });
 
-say to-pretty-table(@dsScores.head(30), field-names => <dot label text> );
+say to-pretty-table(@dsScores.head(30), field-names => <distance label text>);
 
 say "\n\n\n";
 
