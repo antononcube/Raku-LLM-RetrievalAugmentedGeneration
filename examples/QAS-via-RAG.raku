@@ -19,6 +19,8 @@ use Math::DistanceFunctions;
 
 my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
 
+say vector-database-objects».basename;
+
 my $dirName = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
 my $fileName = $dirName ~ '/SemSe-No833.json';
 
