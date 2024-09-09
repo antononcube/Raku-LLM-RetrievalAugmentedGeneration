@@ -1,9 +1,13 @@
 use v6.d;
 
 use UUID;
-use LLM::Functions;
 use XDG::BaseDirectory :terms;
 use JSON::Fast;
+
+use LLM::Functions;
+
+use Math::DistanceFunctions;
+use Math::Nearest;
 
 class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
@@ -223,6 +227,45 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         # Result
         return self;
+    }
+
+    #======================================================
+    # Nearest
+    #======================================================
+    multi method nearest(Str:D $query, $spec, *%args) {
+
+        my @vec = |llm-embedding($query, llm-evaluator => self.llm-configuration).head;
+
+        return self.nearest(@vec, $spec, |%args);
+    }
+
+    multi method nearest(
+            @vec where @vec.all ~~ Numeric:D,
+            $spec,
+            :$distance-function is copy = Whatever,
+            :$method is copy = Whatever,
+            :$prop is copy = Whatever) {
+        if !%!database {
+            note "The vector database is empty";
+            return Nil;
+        }
+
+        if $distance-function.isa(Whatever) {
+            $distance-function = $!distance-function;
+            if $distance-function.isa(Whatever) {
+                $distance-function = &euclidean-distance
+            }
+        }
+
+        # It is assumed that making the finder object is fast
+        my &finder = nearest(%!database.pairs, :$method, :$distance-function);
+
+        if $prop.isa(Whatever) {
+            $prop = <label>;
+        }
+        my @res = &finder(@vec, $spec, :$prop);
+
+        return @res;
     }
 
     #======================================================
