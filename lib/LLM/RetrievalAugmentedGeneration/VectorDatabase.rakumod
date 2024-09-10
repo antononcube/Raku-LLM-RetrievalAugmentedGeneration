@@ -258,6 +258,13 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             return Nil;
         }
 
+        # Since often the dimension of the vectors is high and
+        # the number of vectors is small (for example, 800 vectors each of size 1200)
+        # it is better to have "Scan" as default method instead of "KDTree".
+        # "Scan" also is embarrassingly parallel (and parallel implementation is in place.)
+        if $method.isa(Whatever) { $method = 'Scan' }
+
+        # All models most likely work best with Euclidean Distance
         if $distance-function.isa(Whatever) {
             $distance-function = $!distance-function;
             if $distance-function.isa(Whatever) {
