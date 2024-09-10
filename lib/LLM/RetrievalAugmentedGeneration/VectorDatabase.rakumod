@@ -266,12 +266,12 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         }
 
         # It is assumed that making the finder object is fast
-        my &finder = nearest(%!database.pairs, :$method, :$distance-function, :$degree, :$batch);
+        my &finder = nearest(%!database.pairs, :$method, :$distance-function);
 
         if $prop.isa(Whatever) {
             $prop = <label>;
         }
-        my @res = &finder(@vec, $spec, :$prop);
+        my @res = &finder(@vec, $spec, :$prop, :$degree, :$batch);
 
         return @res;
     }
