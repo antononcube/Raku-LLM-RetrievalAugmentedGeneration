@@ -250,7 +250,9 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             $spec,
             :$distance-function is copy = Whatever,
             :$method is copy = Whatever,
-            :$prop is copy = Whatever) {
+            :$prop is copy = Whatever,
+            UInt :$degree = 1,
+            :$batch = Whatever) {
         if !%!database {
             note "The vector database is empty";
             return Nil;
@@ -264,7 +266,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         }
 
         # It is assumed that making the finder object is fast
-        my &finder = nearest(%!database.pairs, :$method, :$distance-function);
+        my &finder = nearest(%!database.pairs, :$method, :$distance-function, :$degree, :$batch);
 
         if $prop.isa(Whatever) {
             $prop = <label>;
