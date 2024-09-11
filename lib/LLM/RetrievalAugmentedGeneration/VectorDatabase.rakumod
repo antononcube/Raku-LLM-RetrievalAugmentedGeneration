@@ -352,8 +352,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         # Make CArrays
         if %!database.elems > 0 && $to-carray {
-            %!database .= map({ $_.key => CArray[num64].new($_.value».Num) });
-            note ('%!database.head' => %!database.head);
+            %!database .= map({ $_.key => CArray[num64].new($_.value».Num) })
         }
 
         return self;
