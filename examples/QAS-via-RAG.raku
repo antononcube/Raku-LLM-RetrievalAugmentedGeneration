@@ -3,7 +3,6 @@ use v6.d;
 
 use lib <. lib>;
 
-use Data::Importers;
 use LLM::Functions;
 use XDG::BaseDirectory :terms;
 
