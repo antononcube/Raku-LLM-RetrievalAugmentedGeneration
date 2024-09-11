@@ -9,6 +9,8 @@ use LLM::Functions;
 use Math::DistanceFunctions;
 use Math::Nearest;
 
+use NativeCall;
+
 class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
     has Str:D $.name is rw = '';
@@ -129,6 +131,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
                                               :$method is copy = Whatever,
                                               :&tokenizer is copy = WhateverCode,
                                               :$max-tokens is copy = Whatever,
+                                              Bool:D :c(:carray(:$to-carray)) is copy = True,
                                               Bool:D :$embed = True,
                                               Bool:D :$export = True,
                                               *%args) {
@@ -212,7 +215,9 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         my @vector-embeddings = Empty;
         if $embed {
            @vector-embeddings = llm-embedding(@verified-chunks, :$llm-evaluator);
-           @vector-embeddings .= deepmap({.Num})
+           if $to-carray {
+               @vector-embeddings = @vector-embeddings.map({ CArray[num64].new($_».Num) });
+           }
         }
 
         #-------------------------------------------------------------
@@ -238,11 +243,23 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     #======================================================
     # Nearest
     #======================================================
-    multi method nearest(Str:D $query, $spec, *%args) {
+    multi method nearest(Str:D $text, $spec, :c(:carray(:$to-carray)) is copy = Whatever, *%args) {
 
-        my @vec = |llm-embedding($query, llm-evaluator => self.llm-configuration).head;
+        my $vec = |llm-embedding($text, llm-evaluator => self.llm-configuration).head;
 
-        return self.nearest(@vec, $spec, |%args);
+        die "Did not obtain embedding vector for the given text."
+        unless $vec ~~ Positional:D;
+
+        if $to-carray.isa(Whatever) {
+            $to-carray = %!database.elems && (%!database.head.value ~~ CArray)
+        }
+        die 'The argument $to-carray is expected to be a boolean or Whatever.' unless $to-carray ~~ Bool:D;
+
+        if $to-carray {
+            $vec = CArray[num64].new($vec);
+        }
+
+        return self.nearest($vec, $spec, |%args);
     }
 
     multi method nearest(
@@ -314,6 +331,11 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         if $!llm-configuration ~~ Map:D && ($!llm-configuration<name>:exists) {
             $!llm-configuration = llm-configuration($!llm-configuration<name>, |$!llm-configuration)
+        }
+
+        # Make CArrays
+        if %!database.elems > 0 {
+            %!database = %!database.map({ $_.key => CArray[num64].new($_.value».Num) })
         }
 
         return self;
