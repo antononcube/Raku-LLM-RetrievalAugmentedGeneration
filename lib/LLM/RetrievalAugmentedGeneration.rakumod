@@ -80,7 +80,7 @@ sub vector-database-objects($dirname is copy = Whatever,
             }
         }
 
-        if $format.isa(Whatever) { $format = 'file' }
+        if $format.isa(Whatever) { $format = 'gist' }
         die 'The argument $format is expected to be a string or Whatever.'
         unless $format ~~ Str:D;
 
