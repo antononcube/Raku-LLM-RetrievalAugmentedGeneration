@@ -4,7 +4,6 @@ use v6.d;
 use lib <. lib>;
 
 use Data::Importers;
-use LLM::Configurations;
 use LLM::Functions;
 
 use LLM::RetrievalAugmentedGeneration;
@@ -23,13 +22,15 @@ for @chunks.keys.pick(6) -> $k {
     say "$k : {@chunks[$k]}";
 }
 
+@chunks = @chunks.pick(10);
+
 my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(name => 'No833');
 
 #my $llm-evaluator = llm-configuration("ChatGPT", model => 'text-embedding-002');
 my $llm-evaluator = llm-configuration("Gemini");
 
 my $tstart = now;
-$vdbObj.create-semantic-search-index(@chunks, method => 'by-max-tokens', max-tokens => 2048, :$llm-evaluator, :!export, :embed);
+$vdbObj.create-semantic-search-index(@chunks, method => 'by-max-tokens', max-tokens => 2048, :$llm-evaluator, :export, :embed);
 my $tend = now;
 say "Time to make the semantic search index: {$tend - $tstart} seconds.";
 
