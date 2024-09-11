@@ -251,7 +251,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     #======================================================
     multi method nearest(Str:D $text, $spec, :c(:carray(:$to-carray)) is copy = Whatever, *%args) {
 
-        my $vec = |llm-embedding($text, llm-evaluator => self.llm-configuration).head;
+        my $vec = llm-embedding($text, llm-evaluator => self.llm-configuration).head;
 
         die "Did not obtain embedding vector for the given text."
         unless $vec ~~ Positional:D;
@@ -265,12 +265,13 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             $vec = CArray[num64].new($vec);
         }
 
-        return self.nearest($vec, $spec, |%args);
+        return self.nearest($vec, $spec, :$to-carray, |%args);
     }
 
     multi method nearest(
-            @vec where @vec.all ~~ Numeric:D,
+            $vec  is copy where $vec ~~ Positional:D && $vec.all ~~ Numeric:D,
             $spec,
+            :c(:carray(:$to-carray)) is copy = Whatever,
             :$distance-function is copy = Whatever,
             :$method is copy = Whatever,
             :$prop is copy = Whatever,
@@ -279,6 +280,16 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         if !%!database {
             note "The vector database is empty";
             return Nil;
+        }
+
+        if $to-carray.isa(Whatever) {
+            $to-carray = %!database.elems && (%!database.head.value ~~ CArray)
+        }
+        die 'The argument $to-carray is expected to be a boolean or Whatever.' unless $to-carray ~~ Bool:D;
+
+        if $to-carray {
+            # Is this check needed?
+            $vec = $vec ~~ CArray ?? $vec !! CArray[num64].mew($vec.Array)
         }
 
         # Since often the dimension of the vectors is high and
@@ -301,7 +312,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         if $prop.isa(Whatever) {
             $prop = <label>;
         }
-        my @res = &finder(@vec, $spec, :$prop, :$degree, :$batch);
+        my @res = &finder($vec, $spec, :$prop, :$degree, :$batch);
 
         return @res;
     }
@@ -341,7 +352,8 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         # Make CArrays
         if %!database.elems > 0 && $to-carray {
-            %!database = %!database.map({ $_.key => CArray[num64].new($_.value».Num) })
+            %!database .= map({ $_.key => CArray[num64].new($_.value».Num) });
+            note ('%!database.head' => %!database.head);
         }
 
         return self;
