@@ -36,7 +36,9 @@ multi sub vector-database-search(LLM::RetrievalAugmentedGeneration::VectorDataba
 #===========================================================
 # Vector databases
 #===========================================================
-sub vector-database-objects($dirname is copy = Whatever, :$pattern = '') is export {
+sub vector-database-objects($dirname is copy = Whatever,
+                            :$pattern = '',
+                            :f(:form(:$format)) is copy = Whatever) is export {
     if $dirname.isa(Whatever) {
         $dirname = $dirnameXDG
     }
@@ -56,6 +58,36 @@ sub vector-database-objects($dirname is copy = Whatever, :$pattern = '') is expo
                 @files.grep({ $_.Str.ends-with('.json') })
             }
         }
-        return @files;
+
+        if $format.isa(Whatever) { $format = 'file' }
+        die 'The argument $format is expected to be a string or Whatever.'
+        unless $format ~~ Str:D;
+
+        given $format.lc {
+            when $_ ∈ <file files> {
+                return @files
+            }
+            when $_ ∈ <filename filenames file-name file-names> {
+                return @files».Str
+            }
+            when $_ ∈ <gist summary> {
+
+                my %vbTexts = @files.map({ $_.Str => $_.slurp });
+
+                my @res = %vbTexts.map({ %(
+                    file => $_.key.IO,
+                    item-count => (with $_.value.match(/'"item-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
+                    document-count => (with $_.value.match(/'"document-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
+                    id => (with $_.value.match(/'"id"' \h* ':' \h* \" (.+?) \" /) { $0.Str  } else {''}),
+                    version => (with $_.value.match(/'"version"' \h* ':' \h* (\d+?) /) { $0.Str  } else {0})
+                ) });
+
+                return @res;
+            }
+            default {
+                note 'Unknown format for the result; known formats are "file", "file-name", and "gist".';
+                return @files
+            }
+        }
     }
 }
