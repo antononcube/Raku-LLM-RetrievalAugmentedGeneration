@@ -398,6 +398,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
                     :$!item-count, :$!document-count,
                     :$!distance-function, :$!tokenizer,
                     :$!llm-configuration,
+                    :%!tags,
                     :%!text-chunks,
                     :%!database
                 };
