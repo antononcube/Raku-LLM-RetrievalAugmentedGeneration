@@ -4,7 +4,6 @@ use v6.d;
 use lib <. lib>;
 
 use Data::Importers;
-use LLM::Configurations;
 use LLM::Functions;
 use XDG::BaseDirectory :terms;
 
@@ -14,15 +13,16 @@ use LLM::RetrievalAugmentedGeneration::VectorDatabase;
 use Data::Reshapers;
 use Data::Summarizers;
 use Data::TypeSystem;
-use Math::Nearest;
-use Math::DistanceFunctions;
+use Math::DistanceFunctions::Native;
 
 my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
 
+say "Known vector databases:";
 say vector-database-objects».basename;
 
 my $dirName = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
-my $fileName = $dirName ~ '/SemSe-No833.json';
+my $fileName = $dirName ~ '/SemSe-266b20ca-d917-4ac0-9b0a-7c420625666c.json';
+#my $fileName = $dirName ~ '/SemSe-d2effebc-2cef-4b2b-84ca-5dcfa3c1864b.json';
 
 say "Importing vector database...";
 
@@ -39,17 +39,16 @@ say $vdbObj;
 .say for |$vdbObj.database.pick(3);
 
 my $query = 'What is the state of string theory?';
-my @vec = |llm-embedding($query, llm-evaluator => $vdbObj.llm-configuration).head;
-
-@vec .= deepmap(*.Num);
-
-say (:@vec);
-say 'deduce-type(@vec) : ', deduce-type(@vec);
 
 say 'deduce-type($vdbObj.database) : ', deduce-type($vdbObj.database);
 
 $tstart = now;
-my @res = $vdbObj.nearest($query, 30, prop => <label distance>, method => 'Scan', distance-function => -> @x, @y { 1 - sum(@x >>*<< @y)});
+
+# This won't work because by default the vector database elements are converted to CArray's:
+# my @res = $vdbObj.nearest($query, 30, prop => <label distance>, method => 'Scan', distance-function => { 1.0 - sum($^a <<*>> $^b) });
+
+my @res = $vdbObj.nearest($query, 30, prop => <label distance>, method => 'Scan', distance-function => &euclidean-distance);
+
 $tend = now;
 say "Time to find nearest neighbors {$tend - $tstart} seconds.";
 
@@ -57,7 +56,7 @@ my @dsScores = @res.map({
     %( label => $_[0], distance => $_[1], text => $vdbObj.text-chunks{$_[0]} )
 });
 
-say to-pretty-table(@dsScores, field-names => <distance label text>);
+say to-pretty-table(@dsScores, field-names => <distance label text>, align => 'l');
 
 say "\n\n\n";
 
