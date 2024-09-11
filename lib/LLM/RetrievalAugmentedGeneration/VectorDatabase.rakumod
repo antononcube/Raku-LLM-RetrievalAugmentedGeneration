@@ -309,7 +309,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     #======================================================
     # Import
     #======================================================
-    method import($file) {
+    method import($file, Bool:D :c(:carray(:$to-carray)) is copy = True) {
         if !$file.IO.e {
             die "Does not exist: ⎡$file⎦."
         }
@@ -340,7 +340,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         }
 
         # Make CArrays
-        if %!database.elems > 0 {
+        if %!database.elems > 0 && $to-carray {
             %!database = %!database.map({ $_.key => CArray[num64].new($_.value».Num) })
         }
 
