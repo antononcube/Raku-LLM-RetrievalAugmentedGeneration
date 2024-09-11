@@ -12,21 +12,26 @@ my $dirnameXDG = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
 #===========================================================
 # Create semantic search index
 #===========================================================
-our proto sub create-semantic-search-index($content, |) is export {*}
+#| Create semantic search index for a given source.
+our proto sub create-semantic-search-index($source, |) is export {*}
 
-multi sub create-semantic-search-index($content, *%args) {
+multi sub create-semantic-search-index($source, *%args) {
 
     my $name = %args<name> // '';
     my $id = %args<id> // Whatever;
 
     my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(:$name, :$id);
 
-    return $vdbObj.create-semantic-search-index($content, |%args);
+    return $vdbObj.create-semantic-search-index($source, |%args);
 }
 
 #===========================================================
 # Vector database search
 #===========================================================
+#| Find the nearest neighbor vectors for a given database and query.
+#| C<$obj> Vector database.
+#| C<$query> A vector compatible with the database or a string.
+#| C<$spec> Number of nearest neighbors or C<(count, radius)> spec.
 our proto sub vector-database-search(LLM::RetrievalAugmentedGeneration::VectorDatabase $obj, $query) is export {*}
 
 multi sub vector-database-search(LLM::RetrievalAugmentedGeneration::VectorDatabase $obj, $query, $spec, *%args) {
@@ -36,6 +41,8 @@ multi sub vector-database-search(LLM::RetrievalAugmentedGeneration::VectorDataba
 #===========================================================
 # Vector databases
 #===========================================================
+# Importing of the whole vector database can be slow (3-5 seconds for database with ≈500 vectors.)
+# Hence, we just slurp the text file an extract gist-data from it.
 sub extract-vb-summaries(@files) {
     my %vbTexts = @files.map({ $_.Str => $_.slurp });
 
@@ -57,6 +64,10 @@ sub extract-vb-summaries(@files) {
     return @res;
 }
 
+#| Gives file names or gists of available vector databases.
+#| C<$dirname> Directory to search in.
+#| C<:$pattern> String or regex to filter the filenames with.
+#| C<:$format> Format of the results. One of file, filename, gist, summary, or Whatever.
 sub vector-database-objects($dirname is copy = Whatever,
                             :$pattern = '',
                             :f(:form(:$format)) is copy = Whatever) is export {
@@ -91,14 +102,14 @@ sub vector-database-objects($dirname is copy = Whatever,
             when $_ ∈ <filename filenames file-name file-names> {
                 return @files».Str
             }
-            when $_ ∈ <summary map hash gist-map gist-hash> {
-                return extract-vb-summaries(@files)
-            }
             when $_ eq 'gist' {
                 return extract-vb-summaries(@files).map({
                     # This should be consistent with VectorDatabase::gist
                     'VectorDatabase' ~ (<id name elements sources> Z=> $_<id name item-count document-count>).List.raku;
                 })
+            }
+            when $_ ∈ <summary map hash gist-map gist-hash> {
+                return extract-vb-summaries(@files)
             }
             default {
                 note 'Unknown format for the result; known formats are "file", "file-name", and "gist".';
