@@ -215,8 +215,14 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         my @vector-embeddings = Empty;
         if $embed {
            @vector-embeddings = llm-embedding(@verified-chunks, :$llm-evaluator);
+
+           die "Did not obtain embedding vectors for all text chunks."
+           unless @vector-embeddings.all ~~ Positional:D;
+
            if $to-carray {
-               @vector-embeddings = @vector-embeddings.map({ CArray[num64].new($_».Num) });
+               @vector-embeddings .= map({
+                   $_ ~~ Positional:D ?? CArray[num64].new($_».Num) !! $_
+               });
            }
         }
 
