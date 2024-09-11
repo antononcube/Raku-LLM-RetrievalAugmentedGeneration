@@ -36,6 +36,27 @@ multi sub vector-database-search(LLM::RetrievalAugmentedGeneration::VectorDataba
 #===========================================================
 # Vector databases
 #===========================================================
+sub extract-vb-summaries(@files) {
+    my %vbTexts = @files.map({ $_.Str => $_.slurp });
+
+    my @res = %vbTexts.map({
+
+        my $conf-name = (with $_.value.match(/ '"llm-configuration"' .*? '"name"' \h* ':' \h* \" (<-["]>+) \" /) { $0.Str });
+        my @all-names = (with $_.value.match(:g, / '"name"' \h* ':' \h* \" $<name>=(<-["]>+) \" /) { $/.values.map(*<name>.Str) });
+        my $name = (@all-names (-) $conf-name).keys.head;
+
+        %(
+            :$name,
+            file => $_.key.IO,
+            item-count => (with $_.value.match(/'"item-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
+            document-count => (with $_.value.match(/'"document-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
+            id => (with $_.value.match(/'"id"' \h* ':' \h* \" (.+?) \" /) { $0.Str  } else {''}),
+            version => (with $_.value.match(/'"version"' \h* ':' \h* (\d+?) /) { $0.Str  } else {0})
+        ) });
+
+    return @res;
+}
+
 sub vector-database-objects($dirname is copy = Whatever,
                             :$pattern = '',
                             :f(:form(:$format)) is copy = Whatever) is export {
@@ -70,19 +91,14 @@ sub vector-database-objects($dirname is copy = Whatever,
             when $_ ∈ <filename filenames file-name file-names> {
                 return @files».Str
             }
-            when $_ ∈ <gist summary> {
-
-                my %vbTexts = @files.map({ $_.Str => $_.slurp });
-
-                my @res = %vbTexts.map({ %(
-                    file => $_.key.IO,
-                    item-count => (with $_.value.match(/'"item-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
-                    document-count => (with $_.value.match(/'"document-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
-                    id => (with $_.value.match(/'"id"' \h* ':' \h* \" (.+?) \" /) { $0.Str  } else {''}),
-                    version => (with $_.value.match(/'"version"' \h* ':' \h* (\d+?) /) { $0.Str  } else {0})
-                ) });
-
-                return @res;
+            when $_ ∈ <summary map hash gist-map gist-hash> {
+                return extract-vb-summaries(@files)
+            }
+            when $_ eq 'gist' {
+                return extract-vb-summaries(@files).map({
+                    # This should be consistent with VectorDatabase::gist
+                    'VectorDatabase' ~ (<id name elements sources> Z=> $_<id name item-count document-count>).List.raku;
+                })
             }
             default {
                 note 'Unknown format for the result; known formats are "file", "file-name", and "gist".';
