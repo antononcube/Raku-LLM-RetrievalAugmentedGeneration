@@ -17,7 +17,7 @@ use Math::DistanceFunctions::Native;
 my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
 
 say "Known vector databases:";
-say vector-database-objects».basename;
+.say for vector-database-objects;
 
 my $dirName = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
 my $fileName = $dirName ~ '/SemSe-266b20ca-d917-4ac0-9b0a-7c420625666c.json';
@@ -33,13 +33,13 @@ say "...DONE; import time { $tend - $tstart } seconds.";
 
 say $vdbObj;
 
-.say for |$vdbObj.text-chunks.pick(3);
+.say for |$vdbObj.items.pick(3);
 
-.say for |$vdbObj.database.pick(3);
+.say for |$vdbObj.vectors.pick(3);
 
 my $query = 'What is the state of string theory?';
 
-say 'deduce-type($vdbObj.database) : ', deduce-type($vdbObj.database);
+say 'deduce-type($vdbObj.vectors) : ', deduce-type($vdbObj.vectors);
 
 $tstart = now;
 
@@ -52,7 +52,7 @@ $tend = now;
 say "Time to find nearest neighbors {$tend - $tstart} seconds.";
 
 my @dsScores = @res.map({
-    %( label => $_[0], distance => $_[1], text => $vdbObj.text-chunks{$_[0]} )
+    %( label => $_[0], distance => $_[1], text => $vdbObj.items{$_[0]} )
 });
 
 say to-pretty-table(@dsScores, field-names => <distance label text>, align => 'l');
