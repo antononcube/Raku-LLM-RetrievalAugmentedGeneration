@@ -289,7 +289,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         if $to-carray {
             # Is this check needed?
-            $vec = $vec ~~ CArray ?? $vec !! CArray[num64].mew($vec.Array)
+            $vec = $vec ~~ CArray ?? $vec !! CArray[num64].new($vec.Array)
         }
 
         # Since often the dimension of the vectors is high and
