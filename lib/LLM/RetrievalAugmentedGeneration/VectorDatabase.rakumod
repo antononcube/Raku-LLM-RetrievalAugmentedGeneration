@@ -312,7 +312,14 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         if $prop.isa(Whatever) {
             $prop = <label>;
         }
-        my @res = &finder($vec, $spec, :$prop, :$degree, :$batch);
+
+        my @res = try &finder($vec, $spec, :$prop, :$degree, :$batch);
+
+        if $! {
+            # Should we die here or return fail?
+            note "Cannot find nearest neighbors; the finder gave the error: ⎡{$!.^name}⎦.";
+            return fail;
+        }
 
         return @res;
     }
