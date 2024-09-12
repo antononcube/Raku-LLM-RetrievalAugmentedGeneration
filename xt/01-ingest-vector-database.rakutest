@@ -7,14 +7,15 @@ use LLM::RetrievalAugmentedGeneration::VectorDatabase;
 use Math::DistanceFunctions::Native;
 use NativeCall;
 
-my $fileName = $*CWD ~ '/resources/SemSe-49a66108-8357-4614-82df-dbc6abb51df2.json';
+my $fileName = 'SemSe-49a66108-8357-4614-82df-dbc6abb51df2.json';
+my $file = LLM::RetrievalAugmentedGeneration::resources{$fileName}.absolute.IO;
 my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
 
 ## 1
-is $fileName.IO.f, True, "Vector database file exists";
+is $file.f, True, "Vector database file exists";
 
 ## 2
-ok $vdbObj.import($fileName), "Importing is ok";
+ok $vdbObj.import($file), "Importing is ok";
 
 ## 3
 isa-ok
@@ -37,10 +38,24 @@ is
 
 ## 6
 my $vec5 = $vdbObj.vectors.head.value;
-ok $vdbObj.nearest($vec5, 2, prop => <distance label>), "Method nearest() works";
+ok
+        $vdbObj.nearest($vec5, 2, prop => <distance label>),
+        "Method nearest() works";
 
 ## 7
+my $vec6 = $vdbObj.vectors.head.value.Array;
+ok
+        $vdbObj.nearest($vec6, 2, prop => <distance label>),
+        "Method nearest() works with Array argument";
+
+## 8
 my $res6 = $vdbObj.nearest($vec5, 2, prop => <distance label>);
-is ($res6 ~~ Positional:D) && ($res6.all ~~ Positional:D), True;
+is
+        ($res6 ~~ Positional:D) && ($res6.all ~~ Positional:D),
+        True,
+        "Expected nearest data shape";
+
+## 9
+nok $vdbObj.nearest($vec6, 2, distance-function => { sum($^a <<*>> $^b) } );
 
 done-testing;
