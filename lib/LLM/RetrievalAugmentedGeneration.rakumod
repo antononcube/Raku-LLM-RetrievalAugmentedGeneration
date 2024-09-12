@@ -6,6 +6,10 @@ use XDG::BaseDirectory :terms;
 use LLM::Functions;
 use LLM::RetrievalAugmentedGeneration::VectorDatabase;
 
+our sub resources {
+    %?RESOURCES
+}
+
 #| Default directory for vector databases export
 my $dirnameXDG = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
 
