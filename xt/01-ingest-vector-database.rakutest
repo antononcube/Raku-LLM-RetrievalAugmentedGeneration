@@ -8,7 +8,7 @@ use Math::DistanceFunctions::Native;
 use NativeCall;
 
 my $fileName = 'SemSe-49a66108-8357-4614-82df-dbc6abb51df2.json';
-my $file = LLM::RetrievalAugmentedGeneration::resources{$fileName}.absolute.IO;
+my $file = LLM::RetrievalAugmentedGeneration::resources{$fileName}.IO;
 my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
 
 ## 1
@@ -56,6 +56,8 @@ is
         "Expected nearest data shape";
 
 ## 9
-nok $vdbObj.nearest($vec6, 2, distance-function => { sum($^a <<*>> $^b) } );
+nok
+        $vdbObj.nearest($vec6, 2, distance-function => { sum($^a <<*>> $^b) }),
+        "Expected failure for non-CArray distance function";
 
 done-testing;
