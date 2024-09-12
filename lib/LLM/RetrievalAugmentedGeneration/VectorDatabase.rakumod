@@ -18,8 +18,8 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     has $.distance-function is rw = WhateverCode;
     has $.item-count = 0;
     has $.document-count = 0;
-    has %.database;
-    has %.text-chunks;
+    has %.vectors;
+    has %.items;
     has %.tags;
     has $.tokenizer = WhateverCode;
     has UInt:D $.version = 0;
@@ -32,7 +32,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     submethod BUILD(
             :$!name = '',
             :$!distance-function = WhateverCode,
-            :%!database = %(),
+            :%!vectors = %(),
             :$!tokenizer,
             :$!version = 0,
             :$!location = Whatever,
@@ -41,8 +41,8 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         die 'The argument $location is expected to be a IO.Path or Whatever.'
         unless $!location.isa(Whatever) || $!location ~~ IO::Path:D;
 
-        $!document-count = %!database.elems;
-        $!item-count = %!database.elems;
+        $!document-count = %!vectors.elems;
+        $!item-count = %!vectors.elems;
 
         die 'The argument $id is expected to be a string or Whatever.'
         unless $!id.isa(Whatever) || $!id ~~ Str:D;
@@ -195,7 +195,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             }
         }
 
-        %!text-chunks = %chunks;
+        %!items = %chunks;
 
         #-------------------------------------------------------------
         # 2. Verify the text chunks are with size that is allowed
@@ -229,13 +229,13 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         #-------------------------------------------------------------
         # 4. Create/place the vector database.
         if @vector-embeddings {
-            %!database = %chunks.keys Z=> @vector-embeddings;
+            %!vectors = %chunks.keys Z=> @vector-embeddings;
         } else {
-            %!database = Empty
+            %!vectors = Empty
         }
 
         $!document-count = %content.elems;
-        $!item-count = %!database.elems;
+        $!item-count = %!vectors.elems;
         $!llm-configuration = $llm-evaluator.conf;
 
         #-------------------------------------------------------------
@@ -257,7 +257,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         unless $vec ~~ Positional:D;
 
         if $to-carray.isa(Whatever) {
-            $to-carray = %!database.elems && (%!database.head.value ~~ CArray)
+            $to-carray = %!vectors.elems && (%!vectors.head.value ~~ CArray)
         }
         die 'The argument $to-carray is expected to be a boolean or Whatever.' unless $to-carray ~~ Bool:D;
 
@@ -277,13 +277,13 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             :$prop is copy = Whatever,
             UInt :$degree = 1,
             :$batch = Whatever) {
-        if !%!database {
+        if !%!vectors {
             note "The vector database is empty";
             return Nil;
         }
 
         if $to-carray.isa(Whatever) {
-            $to-carray = %!database.elems && (%!database.head.value ~~ CArray)
+            $to-carray = %!vectors.elems && (%!vectors.head.value ~~ CArray)
         }
         die 'The argument $to-carray is expected to be a boolean or Whatever.' unless $to-carray ~~ Bool:D;
 
@@ -307,7 +307,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         }
 
         # It is assumed that making the finder object is fast
-        my &finder = nearest(%!database.pairs, :$method, :$distance-function);
+        my &finder = nearest(%!vectors.pairs, :$method, :$distance-function);
 
         if $prop.isa(Whatever) {
             $prop = <label>;
@@ -339,8 +339,8 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         $!distance-function = %h<distance-function> // WhateverCode;
         $!item-count = %h<item-count> // 0;
         $!document-count = %h<document-count> // 0;
-        %!database = %h<database> // %();
-        %!text-chunks = %h<text-chunks> // %();
+        %!vectors = %h<vectors> // %();
+        %!items = %h<items> // %();
         $!tokenizer = %h<tokenizer> // WhateverCode;
         $!version = %h<version> // 0;
         $!location = %h<location> // Whatever;
@@ -351,8 +351,8 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         }
 
         # Make CArrays
-        if %!database.elems > 0 && $to-carray {
-            %!database .= map({ $_.key => CArray[num64].new($_.value».Num) })
+        if %!vectors.elems > 0 && $to-carray {
+            %!vectors .= map({ $_.key => CArray[num64].new($_.value».Num) })
         }
 
         return self;
@@ -399,8 +399,8 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
                     :$!distance-function, :$!tokenizer,
                     :$!llm-configuration,
                     :%!tags,
-                    :%!text-chunks,
-                    :%!database
+                    :%!items,
+                    :%!vectors
                 };
     }
 
