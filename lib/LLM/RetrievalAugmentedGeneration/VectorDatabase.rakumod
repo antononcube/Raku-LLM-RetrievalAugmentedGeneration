@@ -421,6 +421,12 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     #======================================================
     method join(LLM::RetrievalAugmentedGeneration::VectorDatabase:D $obj,
                 Bool :$strict-check = False) {
+        # It is somewhat tricky to have this method.
+        # The location becomes invalid.
+        # Should it have an export option?
+        # Should the result be automatically exported?
+        # More generally, is it better to have the joining only as top-level method?
+
         die 'Vector lengths do not match.'
         unless !%!vectors.elems || %!vectors.values[0].elems == $obj.vectors.values[0].elems;
 
@@ -452,6 +458,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         $!document-count += $obj.document-count;
         $!item-count += $obj.item-count;
 
+        $!location = Whatever;
         return self;
     }
 
