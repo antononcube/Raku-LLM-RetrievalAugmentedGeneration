@@ -38,12 +38,15 @@ is $vdbObj5.item-count == $vdbObj5.vectors.elems == $vdbObj5.items.elems, True;
 is $vdbObj5.item-count, $vdbObj1.item-count + $vdbObj2.item-count;
 
 ## 8
+is $vdbObj5.location, Whatever;
+
+## 9
 isa-ok
         vector-database-join([$vdbObj1, $vdbObj2]),
         LLM::RetrievalAugmentedGeneration::VectorDatabase:D,
         "joining sub works on array";
 
-## 9
+## 10
 isa-ok
         vector-database-join($vdbObj1, $vdbObj2),
         LLM::RetrievalAugmentedGeneration::VectorDatabase:D,
