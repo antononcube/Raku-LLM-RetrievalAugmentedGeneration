@@ -33,13 +33,15 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             :$!name = '',
             :$!distance-function = WhateverCode,
             :%!vectors = %(),
+            :%!items = %(),
+            :%!tags = %(),
             :$!tokenizer,
             :$!version = 0,
             :$!location = Whatever,
             :$!id = Whatever,
                     ) {
-        die 'The argument $location is expected to be a IO.Path or Whatever.'
-        unless $!location.isa(Whatever) || $!location ~~ IO::Path:D;
+        die 'The argument $location is expected to be a sring, an IO.Path, or Whatever.'
+        unless $!location.isa(Whatever) || $!location ~~ Str:D || $!location ~~ IO::Path:D;
 
         $!document-count = %!vectors.elems;
         $!item-count = %!vectors.elems;
@@ -66,6 +68,26 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         my %args2 = %args.grep({ $_.key ne 'database' });
         self.bless(database => (@ids Z=> @vectors).Hash, |%args2);
+    }
+
+    #======================================================
+    # Clone
+    #======================================================
+    method clone {
+        self.new(
+                :$!name,
+                :$!id,
+                :$!distance-function,
+                :$!item-count,
+                :$!document-count,
+                vectors => %!vectors.clone,
+                items => %!items.clone,
+                tags => %!tags.clone,
+                :$!tokenizer,
+                :$!version,
+                :$!location,
+                :$!llm-configuration
+                );
     }
 
     #======================================================
@@ -391,6 +413,45 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         if $! {
             note "Error trying to export to file ⎡{$file.IO.Str}⎦:", $!.^name;
         }
+        return self;
+    }
+
+    #======================================================
+    # Join
+    #======================================================
+    method join(LLM::RetrievalAugmentedGeneration::VectorDatabase:D $obj,
+                Bool :$strict-check = False) {
+        die 'Vector lengths do not match.'
+        unless !%!vectors.elems || %!vectors.values[0].elems == $obj.vectors.values[0].elems;
+
+        die 'LLM configurations do not match.'
+        if $strict-check && (!%!vectors.elems || !($!llm-configuration eqv $obj.llm-configuration));
+
+        # Should the key structure assumption be verified?
+
+        my $offset = %!vectors.elems;
+        my $nd = ceiling(log10(self.vectors.elems + $obj.vectors.elems));
+        sub joined-key($key) {
+            my ($p, $c) = $key.split('.', 2);
+            my $new-key = pad-zeroes($p.Int + $offset, $nd) ~ '.' ~ $c;
+            return $new-key;
+        }
+
+        for $obj.vectors.keys -> $key {
+            my $new-key = joined-key($key);
+            %!vectors{$new-key} = $obj.vectors{$key};
+        }
+        for $obj.items.keys -> $key {
+            my $new-key = joined-key($key);
+            %!items{$new-key} = $obj.items{$key};
+        }
+        for $obj.tags.keys -> $key {
+            my $new-key = joined-key($key);
+            %!tags{$new-key} = $obj.tags{$key};
+        }
+        $!document-count += $obj.document-count;
+        $!item-count += $obj.item-count;
+
         return self;
     }
 
