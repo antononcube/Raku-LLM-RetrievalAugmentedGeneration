@@ -1,0 +1,52 @@
+use v6.d;
+use Test;
+
+use lib <. lib>;
+use LLM::RetrievalAugmentedGeneration;
+use LLM::RetrievalAugmentedGeneration::VectorDatabase;
+use Math::DistanceFunctions::Native;
+use NativeCall;
+
+my $fileName1 = 'SemSe-49a66108-8357-4614-82df-dbc6abb51df2.json';
+my $file1 = LLM::RetrievalAugmentedGeneration::resources{$fileName1}.IO;
+my $vdbObj1 = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
+
+my $fileName2 = 'SemSe-c46e167b-72b2-4ded-a007-dbc177484132.json';
+my $file2 = LLM::RetrievalAugmentedGeneration::resources{$fileName2}.IO;
+my $vdbObj2 = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
+
+
+## 1-2
+is $file1.f, True, "Vector database file 1 exists";
+is $file2.f, True, "Vector database file 2 exists";
+
+## 3-4
+ok $vdbObj1.import($file1), "Importing file 1 is ok";
+ok $vdbObj2.import($file2), "Importing file 2 is ok";
+
+## 5
+my $vdbObj5 = $vdbObj1.clone;
+isa-ok
+        $vdbObj5.join($vdbObj2),
+        LLM::RetrievalAugmentedGeneration::VectorDatabase:D,
+        "joining works";
+
+## 6
+is $vdbObj5.item-count == $vdbObj5.vectors.elems == $vdbObj5.items.elems, True;
+
+## 7
+is $vdbObj5.item-count, $vdbObj1.item-count + $vdbObj2.item-count;
+
+## 8
+isa-ok
+        vector-database-join([$vdbObj1, $vdbObj2]),
+        LLM::RetrievalAugmentedGeneration::VectorDatabase:D,
+        "joining sub works on array";
+
+## 9
+isa-ok
+        vector-database-join($vdbObj1, $vdbObj2),
+        LLM::RetrievalAugmentedGeneration::VectorDatabase:D,
+        "joining sub works on two objects";
+
+done-testing;
