@@ -122,3 +122,33 @@ sub vector-database-objects($dirname is copy = Whatever,
         }
     }
 }
+
+
+#===========================================================
+# Join
+#===========================================================
+proto sub vector-database-join(|) is export {*}
+
+multi sub vector-database-join(+@objs where @objs.all ~~ LLM::RetrievalAugmentedGeneration::VectorDatabase:D,
+                               :$name is copy = Whatever,
+                               Bool :$strict-check = False) {
+    if $name.isa(Whatever) {
+        $name = @objs.map(*.name).join('-AND-');
+    }
+
+    die 'The argument $name is expected to be a string or Whatever.'
+    unless $name ~~ Str:D;
+
+    my $res = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(:$name);
+    for @objs -> $obj {
+        $res.join($obj, :$strict-check);
+    }
+
+    return $res
+}
+
+multi sub vector-database-join(*@objs, *%args) {
+    note 'The positional arguments are expected to be vector database objects.' ~
+            ' The named argument are $name is expected to be string or Whatever.' ~
+            ' The named argument $strict-check is expected to be Boolean.';
+}
