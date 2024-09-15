@@ -52,4 +52,10 @@ isa-ok
         LLM::RetrievalAugmentedGeneration::VectorDatabase:D,
         "joining sub works on two objects";
 
+## 11
+is
+        vector-database-join($vdbObj2, $vdbObj2, $vdbObj2, $vdbObj2).vectors.elems,
+        $vdbObj2.item-count * 4,
+        "joining four identical objects gives expected number of vectors";
+
 done-testing;
