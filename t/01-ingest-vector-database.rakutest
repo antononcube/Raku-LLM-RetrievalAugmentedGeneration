@@ -19,7 +19,7 @@ ok $vdbObj.import($file), "Importing with a method is ok";
 
 ## 3
 isa-ok
-        vector-database-import($file, id => 'MY_NEW_VDB'),
+        create-vector-database(:$file, id => 'MY_NEW_VDB'),
         LLM::RetrievalAugmentedGeneration::VectorDatabase,
         "Importing with top-level function is ok";
 
