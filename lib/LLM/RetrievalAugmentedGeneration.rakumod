@@ -14,6 +14,11 @@ our sub resources {
 #| Default directory for vector databases export
 my $dirnameXDG = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
 
+#| Default location
+our proto sub default-location() {
+    return $dirnameXDG;
+}
+
 #===========================================================
 # Create semantic search index
 #===========================================================
@@ -28,6 +33,25 @@ multi sub create-semantic-search-index($source, *%args) {
     my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(:$name, :$id);
 
     return $vdbObj.create-semantic-search-index($source, |%args);
+}
+
+#===========================================================
+# Vector database import
+#===========================================================
+#| Imports a vector database for a given location spec.
+#| C<$location> Location of the vector database.
+#| C<$id> Identifier (a string or Whatever.)
+our proto sub vector-database-import(|) is export {*}
+
+multi sub vector-database-import($location where $location ~~ Str:D || $location ~~ IO::Path:D, :$id = Whatever) {
+    my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(:$id);
+    return $vdbObj.import($location);
+}
+
+multi sub vector-database-import(:$basename!, :$dirname = default-location(), :$volume = '', :$id = Whatever) {
+    my $location = try IO::Path.new(:$basename, :$dirname, :$volume);
+    my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(:$id);
+    return $vdbObj.import($location);
 }
 
 #===========================================================
