@@ -58,4 +58,10 @@ is
         $vdbObj2.item-count * 4,
         "joining four identical objects gives expected number of vectors";
 
+## 12
+is-deeply
+        vector-database-join($vdbObj2, $vdbObj2, $vdbObj2, $vdbObj2).vectors.keys.map({ $_.split('.').head.Int }).sort.Array,
+        (^($vdbObj2.item-count * 4)).Array,
+        "joining four identical objects gives expected keys";
+
 done-testing;
