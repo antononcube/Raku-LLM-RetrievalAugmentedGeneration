@@ -35,9 +35,9 @@ my $tend = now;
 say "Time to make the semantic search index: {$tend - $tstart} seconds.";
 
 say "Text chunks:";
-.say for $vdbObj.text-chunks.pairs.pick(6).sort(*.key);
+.say for $vdbObj.items.pairs.pick(6).sort(*.key);
 
-say "Vectors count: {$vdbObj.database.elems}";
+say "Vectors count: {$vdbObj.vectors.elems}";
 
 say "Exporting vector database...";
 
