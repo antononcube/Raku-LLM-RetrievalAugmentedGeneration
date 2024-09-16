@@ -44,12 +44,13 @@ multi sub create-semantic-search-index($source, *%args) {
 our proto sub create-vector-database(|) is export {*}
 
 multi sub create-vector-database(*%args) {
-    my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(|%args);
     my $location = %args<generated-asset-location> // %args<location>  // %args<file> // False;
     if $location {
+        my %args2 = %args.grep({ $_.key ∉ <generated-asset-location location file> });
+        my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(|%args2);
         return $vdbObj.import($location);
     }
-    return $vdbObj;
+    return LLM::RetrievalAugmentedGeneration::VectorDatabase.new(|%args);
 }
 
 #===========================================================
