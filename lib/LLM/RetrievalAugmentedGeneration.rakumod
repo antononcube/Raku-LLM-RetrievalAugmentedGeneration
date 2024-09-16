@@ -41,7 +41,7 @@ multi sub create-semantic-search-index($source, *%args) {
 #| Creates a vector database. If a given location spec is given imports location's database.
 #| C<:file(:$location)> Location of the vector database.
 #| C<%args> Creation options.
-our proto sub create-vector-database(|) is export {*}
+our proto sub create-vector-database(*%args) is export {*}
 
 multi sub create-vector-database(*%args) {
     my $location = %args<generated-asset-location> // %args<location>  // %args<file> // False;
