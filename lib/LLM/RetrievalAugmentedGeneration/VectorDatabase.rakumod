@@ -390,6 +390,74 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     #======================================================
     # Export
     #======================================================
+    method join(LLM::RetrievalAugmentedGeneration::VectorDatabase:D $obj,
+                Bool :$strict-check = False) {
+        # It is somewhat tricky to have this method.
+        # The location becomes invalid.
+        # Should it have an export option?
+        # Should the result be automatically exported?
+        # More generally, is it better to have the joining only as top-level method?
+
+        die 'Vector lengths do not match.'
+        unless !%!vectors.elems || %!vectors.values[0].elems == $obj.vectors.values[0].elems;
+
+        die 'LLM configurations do not match.'
+        if $strict-check && (!%!vectors.elems || !($!llm-configuration eqv $obj.llm-configuration));
+
+        # Should the key structure assumption be verified?
+
+        my $offset = %!vectors.elems;
+        my $nd = ceiling(log10(%!vectors.elems + $obj.vectors.elems));
+        sub joined-key(Str:D $key, UInt:D $offset) {
+            my ($p, $c) = try $key.split('.', 2);
+            if $! {
+                note "Not all keys have the expected pattern: rx/ \\d+ '.' \\d+ / .";
+                return fail;
+            }
+            my $new-key = pad-zeroes($p.Int + $offset, $nd) ~ '.' ~ $c;
+            return $new-key;
+        }
+
+        # The self.vectors/items/tags keys reshaping can be optimized.
+        # Vectors
+        my @newKeys = %!vectors.keys.map({ joined-key($_, 0) });
+        %!vectors = @newKeys Z=> %!vectors.values;
+
+        for $obj.vectors.keys -> $key {
+            my $new-key = joined-key($key, $offset);
+            %!vectors{$new-key} = $obj.vectors{$key};
+        }
+
+        # Items
+        @newKeys = %!items.keys.map({ joined-key($_, 0) });
+        %!items = @newKeys Z=> %!items.values;
+
+        for $obj.items.keys -> $key {
+            my $new-key = joined-key($key, $offset);
+            %!items{$new-key} = $obj.items{$key};
+        }
+
+        # Tags
+        @newKeys = %!tags.keys.map({ joined-key($_, 0) });
+        %!tags = @newKeys Z=> %!tags.values;
+
+        for $obj.tags.keys -> $key {
+            my $new-key = joined-key($key, $offset);
+            %!tags{$new-key} = $obj.tags{$key};
+        }
+
+        # Attributes
+        $!document-count += $obj.document-count;
+        $!item-count += $obj.item-count;
+        $!location = Whatever;
+
+        # Result
+        return self;
+    }
+
+    #======================================================
+    # Join
+    #======================================================
     method export($file is copy = Whatever) {
         if $file.isa(Whatever) {
             my $dirName = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
@@ -413,52 +481,6 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         if $! {
             note "Error trying to export to file ⎡{$file.IO.Str}⎦:", $!.^name;
         }
-        return self;
-    }
-
-    #======================================================
-    # Join
-    #======================================================
-    method join(LLM::RetrievalAugmentedGeneration::VectorDatabase:D $obj,
-                Bool :$strict-check = False) {
-        # It is somewhat tricky to have this method.
-        # The location becomes invalid.
-        # Should it have an export option?
-        # Should the result be automatically exported?
-        # More generally, is it better to have the joining only as top-level method?
-
-        die 'Vector lengths do not match.'
-        unless !%!vectors.elems || %!vectors.values[0].elems == $obj.vectors.values[0].elems;
-
-        die 'LLM configurations do not match.'
-        if $strict-check && (!%!vectors.elems || !($!llm-configuration eqv $obj.llm-configuration));
-
-        # Should the key structure assumption be verified?
-
-        my $offset = %!vectors.elems;
-        my $nd = ceiling(log10(self.vectors.elems + $obj.vectors.elems));
-        sub joined-key($key) {
-            my ($p, $c) = $key.split('.', 2);
-            my $new-key = pad-zeroes($p.Int + $offset, $nd) ~ '.' ~ $c;
-            return $new-key;
-        }
-
-        for $obj.vectors.keys -> $key {
-            my $new-key = joined-key($key);
-            %!vectors{$new-key} = $obj.vectors{$key};
-        }
-        for $obj.items.keys -> $key {
-            my $new-key = joined-key($key);
-            %!items{$new-key} = $obj.items{$key};
-        }
-        for $obj.tags.keys -> $key {
-            my $new-key = joined-key($key);
-            %!tags{$new-key} = $obj.tags{$key};
-        }
-        $!document-count += $obj.document-count;
-        $!item-count += $obj.item-count;
-
-        $!location = Whatever;
         return self;
     }
 
