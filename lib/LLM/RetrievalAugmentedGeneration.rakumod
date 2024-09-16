@@ -38,20 +38,18 @@ multi sub create-semantic-search-index($source, *%args) {
 #===========================================================
 # Vector database import
 #===========================================================
-#| Imports a vector database for a given location spec.
-#| C<$location> Location of the vector database.
-#| C<$id> Identifier (a string or Whatever.)
-our proto sub vector-database-import(|) is export {*}
+#| Creates a vector database. If a given location spec is given imports location's database.
+#| C<:file(:$location)> Location of the vector database.
+#| C<%args> Creation options.
+our proto sub create-vector-database(|) is export {*}
 
-multi sub vector-database-import($location where $location ~~ Str:D || $location ~~ IO::Path:D, :$id = Whatever) {
-    my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(:$id);
-    return $vdbObj.import($location);
-}
-
-multi sub vector-database-import(:$basename!, :$dirname = default-location(), :$volume = '', :$id = Whatever) {
-    my $location = try IO::Path.new(:$basename, :$dirname, :$volume);
-    my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(:$id);
-    return $vdbObj.import($location);
+multi sub create-vector-database(*%args) {
+    my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(|%args);
+    my $location = %args<generated-asset-location> // %args<location>  // %args<file> // False;
+    if $location {
+        return $vdbObj.import($location);
+    }
+    return $vdbObj;
 }
 
 #===========================================================
