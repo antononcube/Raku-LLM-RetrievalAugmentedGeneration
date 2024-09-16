@@ -48,26 +48,36 @@ multi sub vector-database-search(LLM::RetrievalAugmentedGeneration::VectorDataba
 #===========================================================
 # Importing of the whole vector database can be slow (3-5 seconds for database with ≈500 vectors.)
 # Hence, we just slurp the text file an extract gist-data from it.
-sub extract-vb-summaries(@files) {
+sub extract-vb-summaries(@files, Bool:D :$flat = False) {
     my %vbTexts = @files.map({ $_.Str => $_.slurp });
 
     my @res = %vbTexts.map({
 
         my $llm-configuration = (with $_.value.match(/ '"llm-configuration"' \s* ':' \s* ('{' <-[}]>+ '}') /) { $0.Str });
         if $llm-configuration { $llm-configuration = from-json($llm-configuration.trim) }
-        my $conf-name = (with $_.value.match(/ '"llm-configuration"' .*? '"name"' \h* ':' \h* \" (<-["]>+) \" /) { $0.Str });
-        my @all-names = (with $_.value.match(:g, / '"name"' \h* ':' \h* \" $<name>=(<-["]>+) \" /) { $/.values.map(*<name>.Str) });
+        my $conf-name = (with $_.value.match(/ '"llm-configuration"' .*? '"name"' \s* ':' \s* \" (<-["]>+) \" /) { $0.Str });
+        my @all-names = (with $_.value.match(:g, / '"name"' \s* ':' \s* \" $<name>=(<-["]>+) \" /) { $/.values.map(*<name>.Str) });
         my $name = (@all-names (-) $conf-name).keys.head;
+        my $dimension = (with $_.value.match(/ '"vectors"' \s* ':' \s* '{' \s* <-[[]>+ '[' (<-[\]]>+) ']' /) { $0.Str.split(',', :skip-empty).elems });
 
-        %(
+        my %res =
             :$name,
             file => $_.key.IO,
             item-count => (with $_.value.match(/'"item-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
             document-count => (with $_.value.match(/'"document-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
             id => (with $_.value.match(/'"id"' \h* ':' \h* \" (.+?) \" /) { $0.Str  } else {''}),
             version => (with $_.value.match(/'"version"' \h* ':' \h* (\d+?) /) { $0.Str  } else {0}),
-            :$llm-configuration
-        ) });
+            :$dimension,
+            :$llm-configuration;
+
+        if $flat {
+            %res<llm-configuration>:delete;
+            %res<llm-service> = $conf-name;
+            %res<llm-embedding-model> = $llm-configuration<embedding-model> // '(Any)';
+        }
+
+        %res
+    });
 
     return @res;
 }
@@ -76,9 +86,12 @@ sub extract-vb-summaries(@files) {
 #| C<$dirname> Directory to search in.
 #| C<:$pattern> String or regex to filter the filenames with.
 #| C<:$format> Format of the results. One of file, filename, gist, summary, or Whatever.
+#| C<:$flat> Whether the map-summaries be flat or can be nested.
 sub vector-database-objects($dirname is copy = Whatever,
                             :$pattern = '',
-                            :f(:form(:$format)) is copy = Whatever) is export {
+                            :f(:form(:$format)) is copy = Whatever,
+                            Bool:D :$flat = False
+                            ) is export {
     if $dirname.isa(Whatever) {
         $dirname = $dirnameXDG
     }
@@ -117,7 +130,7 @@ sub vector-database-objects($dirname is copy = Whatever,
                 })
             }
             when $_ ∈ <summary map hash gist-map gist-hash> {
-                return extract-vb-summaries(@files)
+                return extract-vb-summaries(@files, :$flat)
             }
             default {
                 note 'Unknown format for the result; known formats are "file", "file-name", "gist", "gist-map".';
