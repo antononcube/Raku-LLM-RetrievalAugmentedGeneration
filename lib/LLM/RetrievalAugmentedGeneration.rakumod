@@ -5,6 +5,7 @@ unit module LLM::RetrievalAugmentedGeneration;
 use XDG::BaseDirectory :terms;
 use LLM::Functions;
 use LLM::RetrievalAugmentedGeneration::VectorDatabase;
+use JSON::Fast;
 
 our sub resources {
     %?RESOURCES
@@ -52,6 +53,8 @@ sub extract-vb-summaries(@files) {
 
     my @res = %vbTexts.map({
 
+        my $llm-configuration = (with $_.value.match(/ '"llm-configuration"' \s* ':' \s* ('{' <-[}]>+ '}') /) { $0.Str });
+        if $llm-configuration { $llm-configuration = from-json($llm-configuration.trim) }
         my $conf-name = (with $_.value.match(/ '"llm-configuration"' .*? '"name"' \h* ':' \h* \" (<-["]>+) \" /) { $0.Str });
         my @all-names = (with $_.value.match(:g, / '"name"' \h* ':' \h* \" $<name>=(<-["]>+) \" /) { $/.values.map(*<name>.Str) });
         my $name = (@all-names (-) $conf-name).keys.head;
@@ -62,7 +65,8 @@ sub extract-vb-summaries(@files) {
             item-count => (with $_.value.match(/'"item-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
             document-count => (with $_.value.match(/'"document-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
             id => (with $_.value.match(/'"id"' \h* ':' \h* \" (.+?) \" /) { $0.Str  } else {''}),
-            version => (with $_.value.match(/'"version"' \h* ':' \h* (\d+?) /) { $0.Str  } else {0})
+            version => (with $_.value.match(/'"version"' \h* ':' \h* (\d+?) /) { $0.Str  } else {0}),
+            :$llm-configuration
         ) });
 
     return @res;
@@ -116,7 +120,7 @@ sub vector-database-objects($dirname is copy = Whatever,
                 return extract-vb-summaries(@files)
             }
             default {
-                note 'Unknown format for the result; known formats are "file", "file-name", and "gist".';
+                note 'Unknown format for the result; known formats are "file", "file-name", "gist", "gist-map".';
                 return @files
             }
         }
