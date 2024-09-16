@@ -1,0 +1,40 @@
+use v6.d;
+use Test;
+
+use lib <. lib>;
+use LLM::RetrievalAugmentedGeneration;
+use LLM::RetrievalAugmentedGeneration::VectorDatabase;
+use Math::DistanceFunctions::Native;
+use NativeCall;
+
+my $fileName1 = 'SemSe-49a66108-8357-4614-82df-dbc6abb51df2.json';
+my $dirname = LLM::RetrievalAugmentedGeneration::resources{$fileName1}.IO.dirname;
+
+## 1
+is $dirname.IO.d, True, "Vector database directory exists";
+
+## 2
+isa-ok
+        vector-database-objects($dirname),
+        Iterable:D,
+        "vector-databse-objecrs works";
+
+## 3
+is
+        vector-database-objects($dirname, format => 'file').all ~~ IO::Path:D,
+        True,
+        "getting files";
+
+## 4
+is
+        vector-database-objects($dirname, f => 'file-name').all ~~ Str:D,
+        True,
+        "getting file names";
+
+## 5
+is
+        vector-database-objects($dirname, format => 'hash').all ~~ Map:D,
+        True,
+        "getting hashes";
+
+done-testing;
