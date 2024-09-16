@@ -37,4 +37,16 @@ is
         True,
         "getting hashes";
 
+## 6
+isa-ok
+        vector-database-objects($dirname, format => 'hash').head<dimension>,
+        Int:D,
+        "dimension is extractted";
+
+## 7
+isa-ok
+        vector-database-objects($dirname, format => 'hash', :flat).head<llm-embedding-model>,
+        Str:D,
+        'flat summaries have <llm-embedding-model>';
+
 done-testing;
