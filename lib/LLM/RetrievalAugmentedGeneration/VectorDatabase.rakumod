@@ -349,7 +349,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     #======================================================
     # Import
     #======================================================
-    method import($file, Bool:D :c(:carray(:$to-carray)) is copy = True) {
+    method import($file, Bool:D :c(:carray(:$to-carray)) is copy = True, Bool:D :$keep-id = False) {
         if !$file.IO.e {
             die "Does not exist: ⎡$file⎦."
         }
@@ -364,7 +364,9 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         }
 
         $!name = %h<name> // '';
-        $!id = %h<id> // '';
+        if !$keep-id {
+            $!id = %h<id> // ''
+        }
         $!distance-function = %h<distance-function> // WhateverCode;
         $!item-count = %h<item-count> // 0;
         $!document-count = %h<document-count> // 0;
