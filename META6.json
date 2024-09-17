@@ -26,7 +26,8 @@
     "LLM::RetrievalAugmentedGeneration::VectorDatabase": "lib/LLM/RetrievalAugmentedGeneration/VectorDatabase.rakumod"
   },
   "resources": [
-    "SemSe-49a66108-8357-4614-82df-dbc6abb51df2.json"
+    "SemSe-49a66108-8357-4614-82df-dbc6abb51df2.json",
+    "SemSe-c46e167b-72b2-4ded-a007-dbc177484132.json"
   ],
   "license": "Artistic-2.0",
   "source-url": "https://github.com/antononcube/Raku-LLM-RetrievalAugmentedGeneration.git"
