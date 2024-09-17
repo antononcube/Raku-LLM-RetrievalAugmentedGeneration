@@ -129,7 +129,7 @@ sub extract-vb-summaries(@files, Bool:D :$flat = False) {
 #| C<$dirname> Directory to search in.
 #| C<:$pattern> String or regex to filter the filenames with.
 #| C<:$format> Format of the results. One of file, filename, gist, summary, or Whatever.
-#| C<:$flat> Whether the map-summaries be flat or can be nested.
+#| C<:$flat> Whether the map-summaries be flat or nested.
 sub vector-database-objects($dirname is copy = Whatever,
                             :$pattern = '',
                             :f(:form(:$format)) is copy = Whatever,
