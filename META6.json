@@ -13,7 +13,7 @@
     "LLM::Prompts:ver<0.2.3+>",
     "ML::FindTextualAnswer:ver<0.2.6+>",
     "Math::Nearest:ver<0.0.6+>",
-    "Math::DistanceFunctions::ver<0.1.1+>",
+    "Math::DistanceFunctions:ver<0.1.1+>",
     "Math::DistanceFunctions::Native:ver<0.1.0+>",
     "XDG::BaseDirectory:ver<0.0.13+>:auth<zef:jonathanstowe>:api<1.0+>",
     "UUID:ver<1.0.0>",
