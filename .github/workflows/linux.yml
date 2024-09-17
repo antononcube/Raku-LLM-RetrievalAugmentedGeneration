@@ -27,7 +27,7 @@ jobs:
         run: zef install --/test --test-depends --deps-only .
       - name: Install App::Prove6
         run: zef install --/test App::Prove6
-      - name: Build LLM_RAG
+      - name: Install LLM_RAG
         run: zef install .
       - name: Run Tests
         run: prove6 -I. t
