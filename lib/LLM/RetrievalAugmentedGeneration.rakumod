@@ -11,12 +11,32 @@ our sub resources {
     %?RESOURCES
 }
 
+#===========================================================
+# Database location
+#===========================================================
+
 #| Default directory for vector databases export
 my $dirnameXDG = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
+my $defaultLocation = $dirnameXDG;
 
 #| Default location
-our proto sub default-location() {
-    return $dirnameXDG;
+our sub default-location() {
+    return $defaultLocation;
+}
+
+our sub set-default-location($dirname = Whatever) {
+    given $dirname {
+        when Whatever {
+            $defaultLocation = $dirnameXDG;
+        }
+        when $_.IO.d {
+            $defaultLocation = $dirname;
+        }
+        default {
+            die "The first arguent is expected to be a directory or Whatever."
+        }
+    }
+    return $defaultLocation;
 }
 
 #===========================================================
@@ -116,7 +136,7 @@ sub vector-database-objects($dirname is copy = Whatever,
                             Bool:D :$flat = False
                             ) is export {
     if $dirname.isa(Whatever) {
-        $dirname = $dirnameXDG
+        $dirname = default-location()
     }
     if !$dirname.IO.d {
         note "Not a directory: ⎡$dirname⎦." unless $dirname eq $dirnameXDG;
