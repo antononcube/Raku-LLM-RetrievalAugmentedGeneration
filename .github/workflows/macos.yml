@@ -28,6 +28,6 @@ jobs:
       - name: Install App::Prove6
         run: zef install --/test App::Prove6
       - name: Build LLM_RAG
-        run: zef build .
+        run: zef install .
       - name: Run Tests
         run: prove6 -I. t
