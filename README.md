@@ -26,7 +26,7 @@ Here is one way to achieve this:
 2. Each of the text chunks is "vectorized" via LLM embedding.
 3. Then the vectors are put in a vector database or "just" into a "nearest neighbors" finding function object.
    - A large nearest neighbors finding object can be made with ["Math::Nearest"](https://raku.land/zef:antononcube/Math::Nearest), [AAp6]. 
-   - Alternatively, a recommender system can be used like ["ML::StreamsBlendingRecommender"](https://github.com/antononcube/Raku-ML-StreamsBlendingRecommender), [AAp7]. 
+   - Alternatively, a recommender system can be used like ["ML::StreamsBlendingRecommender"](https://github.com/antononcube/Raku-ML-StreamsBlendingRecommender), [AAp8]. 
 4. When a user query is given:
    - The LLM embedding vector is being found.
    - The closest text chunk vectors are found.
@@ -125,6 +125,18 @@ In this diagram:
 
 -----
 
+## Implementation notes
+
+- Since Vector DataBases (VDBs) are slow and "expensive" to compute, their stored in local directory.
+  - By default `XDG_DATA_HOME` is used; for example, `~/.local/share/raku/LLM/SemanticSearchIndex`.
+- LLM embeddings produce large, dense vectors, hence nearest neighbors finding algorithms like 
+  [K-d Tree](https://en.wikipedia.org/wiki/K-d_tree#Degradation_in_performance_with_high-dimensional_data) do not apply.
+  (Although, those algorithms perform well in low-dimensions.)
+  - For example we can have 500 vectors each with dimension 1536.
+- Hence, fast C-implementations of the common distance functions were made; see [AAp7].
+
+-----
+
 ## References
 
 ### Packages
@@ -160,6 +172,11 @@ In this diagram:
 [GitHub/antononcube](https://github.com/antononcube).
 
 [AAp7] Anton Antonov,
+[Math::DistanceFunctions::Native Raku package](https://github.com/antononcube/Raku-Math-DistanceFunctions-Native),
+(2024),
+[GitHub/antononcube](https://github.com/antononcube).
+
+[AAp8] Anton Antonov,
 [ML::StreamsBlendingRecommender Raku package](https://github.com/antononcube/Raku-ML-StreamsBlendingRecommender),
 (2021-2023),
 [GitHub/antononcube](https://github.com/antononcube).
