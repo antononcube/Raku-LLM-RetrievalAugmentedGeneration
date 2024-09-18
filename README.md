@@ -70,6 +70,8 @@ flowchart TD
     CD[Create Vector Database]
     ID --> SD --> EV --> CD
 
+    EV <-.-> LLMs
+    
     CD -.- CArray[[CArray<br>representation]]
 
     CD -.-> |export| LocalVDB
@@ -92,7 +94,7 @@ flowchart TD
     F --> G[Document Selection]
     G -->|Top K documents| H(Model Fine-tuning)
     H --> I[[Generation]]
-    I <-.-> LLM{{LLM}}
+    I <-.-> LLMs
     I -->J[/Output Answer/]
     G -->|Top K passages| K(Model Fine-tuning)
     K --> I
@@ -106,6 +108,14 @@ flowchart TD
         I
         J
         K
+    end
+    
+    subgraph LLMs
+        direction LR
+        OpenAI{{OpenAI}}
+        Gemini{{Gemini}}
+        MistralAI{{MistralAI}}
+        LLaMA{{LLaMA}}
     end
 ```
 
