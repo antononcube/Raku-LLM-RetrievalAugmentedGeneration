@@ -20,11 +20,13 @@ my $dirnameXDG = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
 my $defaultLocation = $dirnameXDG;
 
 #| Default location
-our sub default-location() {
+our proto sub default-location() {*}
+
+multi sub default-location() {
     return $defaultLocation;
 }
 
-our sub set-default-location($dirname = Whatever) {
+multi sub default-location($dirname) {
     given $dirname {
         when Whatever {
             $defaultLocation = $dirnameXDG;
@@ -33,7 +35,7 @@ our sub set-default-location($dirname = Whatever) {
             $defaultLocation = $dirname;
         }
         default {
-            die "The first arguent is expected to be a directory or Whatever."
+            die "If an argument is given then that argument is expected to be a directory or Whatever."
         }
     }
     return $defaultLocation;
