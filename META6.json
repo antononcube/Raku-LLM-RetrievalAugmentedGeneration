@@ -1,8 +1,7 @@
 {
   "name": "LLM::RetrievalAugmentedGeneration",
   "description": "Package for doing LLM Retrieval Augment Generation (RAG).",
-  "version": "0.0.1",
-  "api": "0",
+  "version": "0.0.2",
   "perl": "6.d",
   "authors": [
     "Anton Antonov"
@@ -30,5 +29,6 @@
     "SemSe-c46e167b-72b2-4ded-a007-dbc177484132.json"
   ],
   "license": "Artistic-2.0",
+  "api": "0",
   "source-url": "https://github.com/antononcube/Raku-LLM-RetrievalAugmentedGeneration.git"
 }
