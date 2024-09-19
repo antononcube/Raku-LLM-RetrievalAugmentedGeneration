@@ -153,10 +153,17 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
                                               :$method is copy = Whatever,
                                               :&tokenizer is copy = WhateverCode,
                                               :$max-tokens is copy = Whatever,
+                                              :embedder(:&embedding-function) is copy = WhateverCode,
                                               Bool:D :c(:carray(:$to-carray)) is copy = True,
                                               Bool:D :$embed = True,
                                               Bool:D :$export = True,
                                               *%args) {
+
+        #-------------------------------------------------------------
+        # Embedding function
+        if &embedding-function.isa(WhateverCode) {
+            &embedding-function = &llm-embedding
+        }
 
         #-------------------------------------------------------------
         # Tokenizer
@@ -171,6 +178,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         #-------------------------------------------------------------
         # Get LLM evaluator
         my $llm-evaluator = %args<llm-evaluator> // %args<e> // %args<conf> // 'ChatGPT';
+        # This is assumed to be fast
         $llm-evaluator = llm-evaluator($llm-evaluator);
 
         #-------------------------------------------------------------
@@ -236,7 +244,15 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         # 3. Find the vector embeddings
         my @vector-embeddings = Empty;
         if $embed {
-           @vector-embeddings = llm-embedding(@verified-chunks, :$llm-evaluator);
+            # Find known parameters
+            my @knownParamNames = Empty;
+            @knownParamNames = try &embedding-function.candidates.map({ $_.signature.params.map({ $_.usage-name }) }).flat;
+
+            @vector-embeddings = do if 'llm-evaluator' ∈ @knownParamNames {
+               &embedding-function(@verified-chunks, :$llm-evaluator)
+            } else {
+               &embedding-function(@verified-chunks)
+            }
 
            die "Did not obtain embedding vectors for all text chunks."
            unless @vector-embeddings.all ~~ Positional:D;
