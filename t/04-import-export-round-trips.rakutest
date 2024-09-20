@@ -18,12 +18,13 @@ is $file.f, True, "Vector database file exists";
 ok $vdbObj.import($file), "Importing a JSON file is ok";
 
 ## 3
-my $fileName3 = $fileName.subst('.json', '.cbor');
-ok $vdbObj.export($fileName3, method => 'CBOR'), "Exporting to a CBOR file is ok";
+my $file3 = IO::Path.new(dirname => $*TMPDIR.Str, basename => $fileName.subst('.json', '.cbor'));
+#note (:$file3);
+ok $vdbObj.export($file3, method => 'CBOR'), "Exporting to a CBOR file is ok";
 
 ## 4
 my $vdbObj4 = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
-ok $vdbObj4.import($fileName3), "Importing a CBOR file is ok";
+ok $vdbObj4.import($file3), "Importing a CBOR file is ok";
 
 ## 5
 is-deeply
