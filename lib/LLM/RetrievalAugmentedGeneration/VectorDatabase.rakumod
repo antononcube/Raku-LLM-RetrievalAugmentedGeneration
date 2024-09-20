@@ -3,6 +3,7 @@ use v6.d;
 use UUID;
 use XDG::BaseDirectory :terms;
 use JSON::Fast;
+use CBOR::Simple;
 
 use LLM::Functions;
 
@@ -249,19 +250,19 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             @knownParamNames = try &embedding-function.candidates.map({ $_.signature.params.map({ $_.usage-name }) }).flat;
 
             @vector-embeddings = do if 'llm-evaluator' ∈ @knownParamNames {
-               &embedding-function(@verified-chunks, :$llm-evaluator)
+                &embedding-function(@verified-chunks, :$llm-evaluator)
             } else {
-               &embedding-function(@verified-chunks)
+                &embedding-function(@verified-chunks)
             }
 
-           die "Did not obtain embedding vectors for all text chunks."
-           unless @vector-embeddings.all ~~ Positional:D;
+            die "Did not obtain embedding vectors for all text chunks."
+            unless @vector-embeddings.all ~~ Positional:D;
 
-           if $to-carray {
-               @vector-embeddings .= map({
-                   $_ ~~ Positional:D ?? CArray[num64].new($_».Num) !! $_
-               });
-           }
+            if $to-carray {
+                @vector-embeddings .= map({
+                    $_ ~~ Positional:D ?? CArray[num64].new($_».Num) !! $_
+                });
+            }
         }
 
         #-------------------------------------------------------------
@@ -307,7 +308,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     }
 
     multi method nearest(
-            $vec  is copy where $vec ~~ Positional:D && $vec.all ~~ Numeric:D,
+            $vec is copy where $vec ~~ Positional:D && $vec.all ~~ Numeric:D,
             $spec,
             :c(:carray(:$to-carray)) is copy = Whatever,
             :$distance-function is copy = Whatever,
@@ -355,7 +356,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         if $! {
             # Should we die here or return fail?
-            note "Cannot find nearest neighbors; the finder gave the error: ⎡{$!.^name}⎦.";
+            note "Cannot find nearest neighbors; the finder gave the error: ⎡{ $!.^name }⎦.";
             return fail;
         }
 
@@ -363,50 +364,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     }
 
     #======================================================
-    # Import
-    #======================================================
-    method import($file, Bool:D :c(:carray(:$to-carray)) is copy = True, Bool:D :$keep-id = False) {
-        if !$file.IO.e {
-            die "Does not exist: ⎡$file⎦."
-        }
-        if !$file.IO.f {
-            die "Is not a file: ⎡$file⎦."
-        }
-
-        my %h = try from-json(slurp($file));
-
-        if $! {
-            die "Cannot ingest as a JSON file: ⎡$file⎦."
-        }
-
-        $!name = %h<name> // '';
-        if !$keep-id {
-            $!id = %h<id> // ''
-        }
-        $!distance-function = %h<distance-function> // WhateverCode;
-        $!item-count = %h<item-count> // 0;
-        $!document-count = %h<document-count> // 0;
-        %!vectors = %h<vectors> // %();
-        %!items = %h<items> // %();
-        $!tokenizer = %h<tokenizer> // WhateverCode;
-        $!version = %h<version> // 0;
-        $!location = %h<location> // Whatever;
-        $!llm-configuration = %h<llm-configuration> // Whatever;
-
-        if $!llm-configuration ~~ Map:D && ($!llm-configuration<name>:exists) {
-            $!llm-configuration = llm-configuration($!llm-configuration<name>, |$!llm-configuration)
-        }
-
-        # Make CArrays
-        if %!vectors.elems > 0 && $to-carray {
-            %!vectors .= map({ $_.key => CArray[num64].new($_.value».Num) })
-        }
-
-        return self;
-    }
-
-    #======================================================
-    # Export
+    # Join
     #======================================================
     method join(LLM::RetrievalAugmentedGeneration::VectorDatabase:D $obj,
                 Bool :$strict-check = False) {
@@ -474,17 +432,85 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     }
 
     #======================================================
-    # Join
+    # Import
     #======================================================
-    method export($file is copy = Whatever) {
+    method import($file, Bool:D :c(:carray(:$to-carray)) is copy = True, Bool:D :$keep-id = False) {
+        if !$file.IO.e {
+            die "Does not exist: ⎡$file⎦."
+        }
+        if !$file.IO.f {
+            die "Is not a file: ⎡$file⎦."
+        }
+
+        my %h;
+        try {
+            %h = do given $file.IO.extension.lc {
+                when 'json' {
+                    from-json(slurp($file));
+                }
+                when 'cbor' {
+                    cbor-decode(slurp($file, :bin));
+                }
+                default {
+                    die "Unknown file extension ⎡$_⎦."
+                }
+            }
+        }
+
+        if $! {
+            die "Cannot ingest as a ⎡{$file.IO.extension}⎦ file: ⎡$file⎦."
+        }
+
+        $!name = %h<name> // '';
+        if !$keep-id {
+            $!id = %h<id> // ''
+        }
+        $!distance-function = %h<distance-function> // WhateverCode;
+        $!item-count = %h<item-count> // 0;
+        $!document-count = %h<document-count> // 0;
+        %!vectors = %h<vectors> // %();
+        %!items = %h<items> // %();
+        $!tokenizer = %h<tokenizer> // WhateverCode;
+        $!version = %h<version> // 0;
+        $!location = %h<location> // Whatever;
+        $!llm-configuration = %h<llm-configuration> // Whatever;
+
+        if $!llm-configuration ~~ Map:D && ($!llm-configuration<name>:exists) {
+            $!llm-configuration = llm-configuration($!llm-configuration<name>, |$!llm-configuration)
+        }
+
+        # Make CArrays
+        if %!vectors.elems > 0 && $to-carray {
+            %!vectors .= map({ $_.key => CArray[num64].new($_.value».Num) })
+        }
+
+        return self;
+    }
+
+    #======================================================
+    # Export
+    #======================================================
+    method export($file is copy = Whatever, Str:D :$method = 'json') {
         if $file.isa(Whatever) {
             my $dirName = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
             if !$dirName.IO.d { $dirName.IO.mkdir }
             my $id = $!id;
             if !$id { $id = DateTime.Str.trans(':'=>'.').substr(^19) }
             $id = "SemSe-$id";
-            $file = $dirName ~ "/$id.json";
+            $file = $dirName ~ "/{$id}.{$method}";
         }
+
+        return do given $method.lc {
+            when 'json' { self!export-json($file) }
+            when 'cbor' { self!export-cbor($file) }
+            default {
+                die 'The argument $method is expected to be one of "JSON" or "CBOR".'
+            }
+        }
+    }
+
+    # JSON export
+    method !export-json(Str:D $file) {
 
         # Save location
         $!location = $file.IO.Str;
@@ -498,6 +524,25 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         if $! {
             note "Error trying to export to file ⎡{$file.IO.Str}⎦:", $!.^name;
+        }
+        return self;
+    }
+
+    # CBOR export
+    method !export-cbor($file is copy = Whatever) {
+
+        # Save location
+        $!location = $file.IO.Str;
+
+        # Export
+        try {
+            my %h = self.Hash;
+            %h<llm-configuration> = %h<llm-configuration>.Hash.grep({ $_.key ∈ <name embedding-model> }).Hash;
+            spurt $file.IO, cbor-encode(%h);
+        }
+
+        if $! {
+            note "Error trying to export to CBOR file ⎡{$file.IO.Str}⎦:", $!.^name;
         }
         return self;
     }
