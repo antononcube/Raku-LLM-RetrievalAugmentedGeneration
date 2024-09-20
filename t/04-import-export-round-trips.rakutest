@@ -1,0 +1,44 @@
+use v6.d;
+use Test;
+
+#use lib <. lib>;
+use LLM::RetrievalAugmentedGeneration;
+use LLM::RetrievalAugmentedGeneration::VectorDatabase;
+use Math::DistanceFunctions::Native;
+use NativeCall;
+
+my $fileName = 'SemSe-49a66108-8357-4614-82df-dbc6abb51df2.json';
+my $file = LLM::RetrievalAugmentedGeneration::resources{$fileName}.IO;
+my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
+
+## 1
+is $file.f, True, "Vector database file exists";
+
+## 2
+ok $vdbObj.import($file), "Importing a JSON file is ok";
+
+## 3
+my $fileName3 = $fileName.subst('.json', '.cbor');
+ok $vdbObj.export($fileName3, method => 'CBOR'), "Exporting to a CBOR file is ok";
+
+## 4
+my $vdbObj4 = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
+ok $vdbObj4.import($fileName3), "Importing a CBOR file is ok";
+
+## 5
+is-deeply
+        $vdbObj.vectors».Array,
+        $vdbObj4.vectors».Array,
+        "Same round trip vectors";
+
+## 6
+is
+        $vdbObj.items eqv $vdbObj4.items &&
+        $vdbObj.tags eqv $vdbObj4.tags &&
+        $vdbObj.id eqv $vdbObj4.id &&
+        $vdbObj.name eqv $vdbObj4.name &&
+        $vdbObj.llm-configuration.Hash.grep({ $_.key ne 'api-user-id' }).Hash eqv $vdbObj4.llm-configuration.Hash.grep({ $_.key ne 'api-user-id' }).Hash,
+        True,
+        "Same round trip Hash representation";
+
+done-testing;
