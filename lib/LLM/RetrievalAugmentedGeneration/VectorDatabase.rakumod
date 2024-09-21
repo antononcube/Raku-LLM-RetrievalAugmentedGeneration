@@ -19,6 +19,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     has $.distance-function is rw = WhateverCode;
     has $.item-count = 0;
     has $.document-count = 0;
+    has $.num-type = num64;
     has %.vectors;
     has %.items;
     has %.tags;
@@ -33,6 +34,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     submethod BUILD(
             :$!name = '',
             :$!distance-function = WhateverCode,
+            :$!num-type = num64,
             :%!vectors = %(),
             :%!items = %(),
             :%!tags = %(),
@@ -49,6 +51,15 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         die 'The argument $id is expected to be a string or Whatever.'
         unless $!id.isa(Whatever) || $!id ~~ Str:D;
+
+        $!num-type = do given $!num-type {
+            when 'num32' { num32 }
+            when 'num64' { num64 }
+            when $_ ~~ num32 || $_ ~~ num64 { $_ }
+            default {
+                die 'The argument $num-type is expected to be one of the strings "num32" or "num64" or one of the types num32 or num64.'
+            }
+        }
 
         if $!id.isa(Whatever) { $!id = ~UUID.new(:version(4)); }
     }
@@ -81,6 +92,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
                 :$!distance-function,
                 :$!item-count,
                 :$!document-count,
+                :$!num-type,
                 vectors => %!vectors.clone,
                 items => %!items.clone,
                 tags => %!tags.clone,
@@ -260,7 +272,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
             if $to-carray {
                 @vector-embeddings .= map({
-                    $_ ~~ Positional:D ?? CArray[num64].new($_».Num) !! $_
+                    $_ ~~ Positional:D ?? CArray[$!num-type].new($_».Num) !! $_
                 });
             }
         }
@@ -301,7 +313,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         die 'The argument $to-carray is expected to be a boolean or Whatever.' unless $to-carray ~~ Bool:D;
 
         if $to-carray {
-            $vec = CArray[num64].new($vec);
+            $vec = CArray[$!num-type].new($vec);
         }
 
         return self.nearest($vec, $spec, :$to-carray, |%args);
@@ -328,7 +340,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         if $to-carray {
             # Is this check needed?
-            $vec = $vec ~~ CArray ?? $vec !! CArray[num64].new($vec.Array)
+            $vec = $vec ~~ CArray ?? $vec !! CArray[$!num-type].new($vec.Array)
         }
 
         # Since often the dimension of the vectors is high and
@@ -468,6 +480,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         $!distance-function = %h<distance-function> // WhateverCode;
         $!item-count = %h<item-count> // 0;
         $!document-count = %h<document-count> // 0;
+        $!num-type = (%h<num-type> // 'num64') eq 'num32' ?? num32 !! num64;
         %!vectors = %h<vectors> // %();
         %!items = %h<items> // %();
         $!tokenizer = %h<tokenizer> // WhateverCode;
@@ -481,7 +494,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         # Make CArrays
         if %!vectors.elems > 0 && $to-carray {
-            %!vectors .= map({ $_.key => CArray[num64].new($_.value».Num) })
+            %!vectors .= map({ $_.key => CArray[$!num-type].new($_.value».Num) })
         }
 
         return self;
@@ -490,62 +503,43 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     #======================================================
     # Export
     #======================================================
-    method export($file is copy = Whatever, Str:D :$method = 'json') {
+    method export($file is copy = Whatever, Str:D :f(:$format) = 'json') {
         if $file.isa(Whatever) {
             my $dirName = data-home.Str ~ '/raku/LLM/SemanticSearchIndex';
             if !$dirName.IO.d { $dirName.IO.mkdir }
             my $id = $!id;
-            if !$id { $id = DateTime.Str.trans(':'=>'.').substr(^19) }
+            if !$id { $id = DateTime.Str.trans(':' => '.').substr(^19) }
             $id = "SemSe-$id";
-            $file = $dirName ~ "/{$id}.{$method}";
+            $file = $dirName ~ "/{ $id }.{ $format }";
         }
 
-        return do given $method.lc {
-            when 'json' { self!export-json($file) }
-            when 'cbor' { self!export-cbor($file) }
-            default {
-                die 'The argument $method is expected to be one of "JSON" or "CBOR".'
+        die 'The argument $format is expected to be one of "CBOR" or "JSON".'
+        unless $format.lc ∈ <cbor json>;
+
+        # Save location
+        $!location = $file.IO.Str;
+
+        # Export
+        try {
+            my %h = self.Hash;
+            %h<num-type> = %h<num-type> ~~ Str:D ?? %h<num-type> !! %h<num-type>.^name;
+            %h<llm-configuration> = %h<llm-configuration>.Hash.grep({ $_.key ∈ <name embedding-model> }).Hash;
+            given $format.lc {
+                when 'json' {
+                    spurt $file.IO, to-json(%h);
+                }
+                when 'cbor' {
+                    spurt $file.IO, cbor-encode(%h);
+                }
             }
         }
-    }
-
-    # JSON export
-    method !export-json(Str:D $file) {
-
-        # Save location
-        $!location = $file.IO.Str;
-
-        # Export
-        try {
-            my %h = self.Hash;
-            %h<llm-configuration> = %h<llm-configuration>.Hash.grep({ $_.key ∈ <name embedding-model> }).Hash;
-            spurt $file.IO, to-json(%h);
-        }
 
         if $! {
-            note "Error trying to export to file ⎡{$file.IO.Str}⎦:", $!.^name;
+            note "Error trying to export to file ⎡{ $file.IO.Str }⎦:", $!.^name;
         }
         return self;
     }
 
-    # CBOR export
-    method !export-cbor($file is copy = Whatever) {
-
-        # Save location
-        $!location = $file.IO.Str;
-
-        # Export
-        try {
-            my %h = self.Hash;
-            %h<llm-configuration> = %h<llm-configuration>.Hash.grep({ $_.key ∈ <name embedding-model> }).Hash;
-            spurt $file.IO, cbor-encode(%h);
-        }
-
-        if $! {
-            note "Error trying to export to CBOR file ⎡{$file.IO.Str}⎦:", $!.^name;
-        }
-        return self;
-    }
 
     #======================================================
     # Representation
@@ -558,9 +552,10 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
                     :$!item-count, :$!document-count,
                     :$!distance-function, :$!tokenizer,
                     :$!llm-configuration,
-                    :%!tags,
+                    :$!num-type,
+                    :%!vectors,
                     :%!items,
-                    :%!vectors
+                    :%!tags
                 };
     }
 
