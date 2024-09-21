@@ -41,6 +41,19 @@ multi sub default-location($dirname) {
     return $defaultLocation;
 }
 
+sub from-basename($source) {
+    if $source ~~ Str:D {
+        for <cbor json> -> $ext {
+            my $file = IO::Path.new(dirname => default-location, basename => $source ~ '.' ~ $ext);
+            return $file if $file.f;
+
+            $file = IO::Path.new(dirname => default-location, basename => 'SemSe-' ~ $source ~ '.' ~ $ext);
+            return $file if $file.f;
+        }
+    }
+    return Nil;
+}
+
 #===========================================================
 # Create semantic search index
 #===========================================================
@@ -53,7 +66,6 @@ multi sub create-semantic-search-index($source, *%args) {
     my $id = %args<id> // Whatever;
 
     my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(:$name, :$id);
-
     return $vdbObj.create-semantic-search-index($source, |%args);
 }
 
@@ -70,7 +82,8 @@ multi sub create-vector-database(*%args) {
     if $location {
         my %args2 = %args.grep({ $_.key ∉ <generated-asset-location location file> });
         my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(|%args2);
-        return $vdbObj.import($location, keep-id => %args<id>:exists);
+        my $location2 = from-basename($location);
+        return $vdbObj.import($location2 // $location, keep-id => %args<id>:exists);
     }
     return LLM::RetrievalAugmentedGeneration::VectorDatabase.new(|%args);
 }
