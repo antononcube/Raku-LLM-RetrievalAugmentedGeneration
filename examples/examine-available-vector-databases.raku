@@ -25,3 +25,10 @@ say '=' x 100;
 say "Basenames of IO:Path objects";
 say '-' x 100;
 .say for vector-database-objects(form=>'file')».basename;
+
+#`[
+say '=' x 100;
+say "Short file spec import";
+say '-' x 100;
+say create-vector-database(file => 'a6b12f80-0ed7-4125-9e2b-9f77c11a16f8');
+]
