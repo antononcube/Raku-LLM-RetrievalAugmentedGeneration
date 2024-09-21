@@ -20,7 +20,7 @@ ok $vdbObj.import($file), "Importing a JSON file is ok";
 ## 3
 my $file3 = IO::Path.new(dirname => $*TMPDIR.Str, basename => $fileName.subst('.json', '.cbor'));
 #note (:$file3);
-ok $vdbObj.export($file3, method => 'CBOR'), "Exporting to a CBOR file is ok";
+ok $vdbObj.export($file3, format => 'CBOR'), "Exporting to a CBOR file is ok";
 
 ## 4
 my $vdbObj4 = LLM::RetrievalAugmentedGeneration::VectorDatabase.new();
