@@ -1,7 +1,7 @@
 {
   "name": "LLM::RetrievalAugmentedGeneration",
   "description": "Package for doing LLM Retrieval Augment Generation (RAG).",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "perl": "6.d",
   "authors": [
     "Anton Antonov"
@@ -16,7 +16,8 @@
     "Math::DistanceFunctions::Native:ver<0.1.1+>",
     "XDG::BaseDirectory:ver<0.0.13+>:auth<zef:jonathanstowe>:api<1.0+>",
     "UUID:ver<1.0.0>",
-    "JSON::Fast:ver<0.17+>"
+    "JSON::Fast:ver<0.17+>",
+    "CBOR::Simple:ver<0.1.3+>"
   ],
   "build-depends": [],
   "test-depends": [],
