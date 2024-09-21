@@ -137,6 +137,8 @@ In this diagram:
 
 ## Implementation notes
 
+### Fast nearest neighbors
+
 - Since Vector DataBases (VDBs) are slow and "expensive" to compute, their stored in local directory.
   - By default `XDG_DATA_HOME` is used; for example, `~/.local/share/raku/LLM/SemanticSearchIndex`.
 - LLM embeddings produce large, dense vectors, hence nearest neighbors finding algorithms like 
@@ -144,6 +146,27 @@ In this diagram:
   (Although, those algorithms perform well in low-dimensions.)
   - For example we can have 500 vectors each with dimension 1536.
 - Hence, fast C-implementations of the common distance functions were made; see [AAp7].
+
+### Smaller export files, faster imports
+
+- Exporting VDBs files in JSON format produces large files.
+  - For example: 
+    - Latest LLaMA models make vectors with dimension 4096
+    - So the transcript of "normal" ≈ 3.5 hours long podcast would produce ≈ 55 MB JSON file size
+    - It takes ≈ 13 seconds to JSON-import that file.
+- Hence, a format for smaller file size and faster import should be investigated.
+- I investigated the use of [CBOR](https://cbor.io) via ["CBOR::Simple"](https://raku.land/zef:japhb/CBOR::Simple).
+- In order to facilitate the use of CBOR:
+  - The VDB class `.export` method takes `:format` argument.
+  - The `.import` method uses the file extension to determine with which format to import with.
+  - The package "Math::DistanceFunctions::Native:ver<0.1.1>" works with `num64` (`double`) and `num32` (`float`) C-arrays.
+  - There is (working) precision attribute `$num-type` in the VDB class that can be `num32` or `num64`.
+- Using CBOR instead of JSON to export/import VDB objects:
+  - Produces ≈ 2 times smaller files using `num64`; ≈ 3 times with `num32`
+  - Exporting is 30% faster with CBOR 
+  - Importing VDB CBOR files is ≈ 3.5 times faster
+  - Importing `num32` CBOR exported files is problematic
+  - Importing using CBOR is "too slow" to make VDBs summaries (done with regexes over JSON text blobs) 
 
 -----
 
