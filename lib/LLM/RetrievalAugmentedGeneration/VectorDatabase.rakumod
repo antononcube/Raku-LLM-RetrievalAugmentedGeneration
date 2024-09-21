@@ -566,6 +566,6 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
     #| To gist
     multi method gist(::?CLASS:D:-->Str) {
-        return 'VectorDatabase' ~ (<id name elements sources> Z=> self.Hash<id name item-count document-count>).List.raku;
+        return 'VectorDatabase' ~ (<id name elements sources precision> Z=> self.Hash<id name item-count document-count num-type>).List.raku;
     }
 }
