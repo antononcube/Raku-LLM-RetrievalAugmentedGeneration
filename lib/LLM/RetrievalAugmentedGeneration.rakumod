@@ -41,14 +41,19 @@ multi sub default-location($dirname) {
     return $defaultLocation;
 }
 
-sub from-basename($source) {
-    if $source ~~ Str:D {
-        for <cbor json> -> $ext {
-            my $file = IO::Path.new(dirname => default-location, basename => $source ~ '.' ~ $ext);
-            return $file if $file.f;
+sub get-source-file($source) {
+    given $source {
+        when $_ ~~ IO::Path:D && $_.f {  return $_; }
+        when $_ ~~ Str:D && $_.IO.f { return $_.IO; }
+        when Str:D {
+            # from basename
+            for <cbor json> -> $ext {
+                my $file = IO::Path.new(dirname => default-location, basename => $source ~ '.' ~ $ext);
+                return $file if $file.f;
 
-            $file = IO::Path.new(dirname => default-location, basename => 'SemSe-' ~ $source ~ '.' ~ $ext);
-            return $file if $file.f;
+                $file = IO::Path.new(dirname => default-location, basename => 'SemSe-' ~ $source ~ '.' ~ $ext);
+                return $file if $file.f;
+            }
         }
     }
     return Nil;
@@ -78,11 +83,11 @@ multi sub create-semantic-search-index($source, *%args) {
 our proto sub create-vector-database(*%args) is export {*}
 
 multi sub create-vector-database(*%args) {
-    my $location = %args<generated-asset-location> // %args<location>  // %args<file> // False;
+    my $location = %args<generated-asset-location> // %args<location> // %args<file> // False;
     if $location {
         my %args2 = %args.grep({ $_.key ∉ <generated-asset-location location file> });
         my $vdbObj = LLM::RetrievalAugmentedGeneration::VectorDatabase.new(|%args2);
-        my $location2 = from-basename($location);
+        my $location2 = get-source-file($location);
         return $vdbObj.import($location2 // $location, keep-id => %args<id>:exists);
     }
     return LLM::RetrievalAugmentedGeneration::VectorDatabase.new(|%args);
@@ -111,22 +116,26 @@ sub extract-vb-summaries(@files, Bool:D :$flat = False) {
 
     my @res = %vbTexts.map({
 
-        my $llm-configuration = (with $_.value.match(/ '"llm-configuration"' \s* ':' \s* ('{' <-[}]>+ '}') /) { $0.Str });
+        my $llm-configuration = (with $_.value.match(/ '"llm-configuration"' \s* ':' \s* ('{' <-[}]>+ '}') /) { $0
+                .Str });
         if $llm-configuration { $llm-configuration = from-json($llm-configuration.trim) }
-        my $conf-name = (with $_.value.match(/ '"llm-configuration"' .*? '"name"' \s* ':' \s* \" (<-["]>+) \" /) { $0.Str });
-        my @all-names = (with $_.value.match(:g, / '"name"' \s* ':' \s* \" $<name>=(<-["]>+) \" /) { $/.values.map(*<name>.Str) });
+        my $conf-name = (with $_.value.match(/ '"llm-configuration"' .*? '"name"' \s* ':' \s* \" (<-["]>+) \" /) { $0
+                .Str });
+        my @all-names = (with $_.value.match(:g, / '"name"' \s* ':' \s* \" $<name>=(<-["]>+) \" /) { $/.values
+                .map(*<name>.Str) });
         my $name = (@all-names (-) $conf-name).keys.head;
-        my $dimension = (with $_.value.match(/ '"vectors"' \s* ':' \s* '{' \s* <-[[]>+ '[' (<-[\]]>+) ']' /) { $0.Str.split(',', :skip-empty).elems });
+        my $dimension = (with $_.value.match(/ '"vectors"' \s* ':' \s* '{' \s* <-[[]>+ '[' (<-[\]]>+) ']' /) { $0.Str
+                .split(',', :skip-empty).elems });
 
         my %res =
-            :$name,
-            file => $_.key.IO,
-            item-count => (with $_.value.match(/'"item-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
-            document-count => (with $_.value.match(/'"document-count"' \h* ':' \h* (\d+) /) { $0.Str  } else {0}),
-            id => (with $_.value.match(/'"id"' \h* ':' \h* \" (.+?) \" /) { $0.Str  } else {''}),
-            version => (with $_.value.match(/'"version"' \h* ':' \h* (\d+?) /) { $0.Str  } else {0}),
-            :$dimension,
-            :$llm-configuration;
+                :$name,
+                file => $_.key.IO,
+                item-count => (with $_.value.match(/'"item-count"' \h* ':' \h* (\d+) /) { $0.Str } else { 0 }),
+                document-count => (with $_.value.match(/'"document-count"' \h* ':' \h* (\d+) /) { $0.Str } else { 0 }),
+                id => (with $_.value.match(/'"id"' \h* ':' \h* \" (.+?) \" /) { $0.Str } else { '' }),
+                version => (with $_.value.match(/'"version"' \h* ':' \h* (\d+?) /) { $0.Str } else { 0 }),
+                :$dimension,
+                :$llm-configuration;
 
         if $flat {
             %res<llm-configuration>:delete;
