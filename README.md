@@ -186,7 +186,16 @@ In this diagram:
   - [X] DONE VDB creation notebook
   - [X] DONE VDB ingestion and RAG notebook
   - [X] DONE Raku-RAG demo notebook and video
-  - [ ] TODO Applications 
+  - [ ] TODO Review (and complete if needed)
+  - [ ] TODO Overview blog post
+- [ ] TODO Applications and workflows 
+  - [X] DONE Simple RAG demos
+  - [X] DONE Making nearest neighbor graphs
+  - [ ] TODO Using a recommender system
+    - I.e. ["ML::StreamsBlendingRecommender"](https://github.com/antononcube/Raku-ML-StreamsBlendingRecommender)
+  - [ ] TODO Complete RAG workflow over a real life, largish Raku package
+  - [ ] TODO RAG over "App::Rak"
+  - [ ] TODO RAG over docs.raku.org
 
 -----
 
