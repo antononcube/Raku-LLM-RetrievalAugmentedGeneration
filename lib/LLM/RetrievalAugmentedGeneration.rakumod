@@ -42,9 +42,11 @@ multi sub default-location($dirname) {
 }
 
 sub get-source-file($source) {
+    # The first two when's are "optimization", which is probably not needed
+    # since the actual vector database ingestion is much slower.
     given $source {
-        when $_ ~~ IO::Path:D && $_.f {  return $_; }
-        when $_ ~~ Str:D && $_.IO.f { return $_.IO; }
+        when ($_ ~~ IO::Path:D) && $_.f { return $_; }
+        when ($_ ~~ Str:D) && $_.IO.e && $_.IO.f { return $_.IO; }
         when Str:D {
             # from basename
             for <cbor json> -> $ext {
