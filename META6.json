@@ -1,7 +1,7 @@
 {
   "name": "LLM::RetrievalAugmentedGeneration",
   "description": "Package for doing LLM Retrieval Augment Generation (RAG).",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "perl": "6.d",
   "authors": [
     "Anton Antonov"
