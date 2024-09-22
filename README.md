@@ -168,6 +168,26 @@ In this diagram:
   - Importing `num32` CBOR exported files is problematic
   - Importing using CBOR is "too slow" to make VDBs summaries (done with regexes over JSON text blobs) 
 
+
+-----
+
+## TODO
+
+- [ ] TODO Implementation
+  - [X] DONE "Short file spec"
+  - [ ] TODO Weak and strong equivalence of VDBs
+- [ ] TODO Unit testing
+  - [X] DONE Ingest VDB
+  - [X] DONE Joining VDBs
+  - [X] DONE Using `vector-database-objects`
+  - [X] DONE Round trip export and import with CBOR and JSON formats
+  - [ ] TODO Expected "correct" nearest neighbors tests
+- [ ] TODO Documentation
+  - [X] DONE VDB creation notebook
+  - [X] DONE VDB ingestion and RAG notebook
+  - [X] DONE Raku-RAG demo notebook and video
+  - [ ] TODO Applications 
+
 -----
 
 ## References
