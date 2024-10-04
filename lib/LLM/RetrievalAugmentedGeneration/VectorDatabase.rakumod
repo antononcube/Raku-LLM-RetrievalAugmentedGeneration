@@ -190,7 +190,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         #-------------------------------------------------------------
         # Get LLM evaluator
-        my $llm-evaluator = %args<llm-evaluator> // %args<e> // %args<conf> // 'ChatGPT';
+        my $llm-evaluator = %args<llm-evaluator> // %args<e> // %args<conf> // self.llm-configuration // 'ChatGPT';
         # This is assumed to be fast
         $llm-evaluator = llm-evaluator($llm-evaluator);
 
@@ -300,12 +300,47 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     #======================================================
     # Nearest
     #======================================================
-    multi method nearest(Str:D $text, $spec, :c(:carray(:$to-carray)) is copy = Whatever, *%args) {
+    multi method nearest(Str:D $text,
+                         $spec,
+                         :c(:carray(:$to-carray)) is copy = Whatever,
+                         :embedder(:&embedding-function) is copy = WhateverCode,
+                         *%args) {
 
-        my $vec = llm-embedding($text, llm-evaluator => self.llm-configuration).head;
 
-        die "Did not obtain embedding vector for the given text."
-        unless $vec ~~ Positional:D;
+        #-------------------------------------------------------------
+        # Embedding function
+        if &embedding-function.isa(WhateverCode) {
+            &embedding-function = &llm-embedding
+        }
+
+        #-------------------------------------------------------------
+        # Get LLM evaluator
+        my $llm-evaluator = %args<llm-evaluator> // %args<e> // %args<conf> // self.llm-configuration // 'ChatGPT';
+        # This is assumed to be fast
+        $llm-evaluator = llm-evaluator($llm-evaluator);
+
+        #-------------------------------------------------------------
+        # Embedding
+
+        # Find known parameters
+        my @knownParamNames = Empty;
+        @knownParamNames = try &embedding-function.candidates.map({ $_.signature.params.map({ $_.usage-name }) }).flat;
+
+        my $vec =  do if 'llm-evaluator' ∈ @knownParamNames {
+            &embedding-function($text, :$llm-evaluator);
+        } else {
+            &embedding-function($text)
+        }
+
+        #-------------------------------------------------------------
+        # Post process embedding
+        $vec = do given $vec {
+            when ($_ ~~ Positional:D | Seq:D) && $_.all ~~ Numeric:D { $_ }
+            when ($_ ~~ Positional:D | Seq:D) && $_.all ~~ Positional:D { $_.head }
+            default {
+                die "Did not obtain embedding vector for the given text."
+            }
+        }
 
         if $to-carray.isa(Whatever) {
             $to-carray = %!vectors.elems && (%!vectors.head.value ~~ CArray)
@@ -316,6 +351,8 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             $vec = CArray[$!num-type].new($vec);
         }
 
+        #-------------------------------------------------------------
+        # Delegate
         return self.nearest($vec, $spec, :$to-carray, |%args);
     }
 
