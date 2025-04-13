@@ -108,15 +108,15 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     #======================================================
     # Note that this sub produces information loss since
     # the word groups would miss "meaningful" white space.
-    # It is assumed that $max-tokens is larger than any word.
-    sub partition-words($text, UInt :$max-chars) {
+    # It is assumed that $max-chars is larger than any word.
+    our sub partition-words($text, UInt:D :$max-chars!) {
         my @words = $text.words;
         my @partitions;
         my @current-group;
         my $current-length = 0;
 
         for @words -> $word {
-            if $current-length + $word.chars <= $max-chars {
+            if $current-length + $word.chars < $max-chars {
                 @current-group.push: $word;
                 # Add one for the joining white space
                 $current-length += $word.chars + 1;
