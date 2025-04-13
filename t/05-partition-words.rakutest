@@ -1,0 +1,26 @@
+use v6.d;
+use Test;
+
+#use lib <. lib>;
+use LLM::RetrievalAugmentedGeneration;
+use LLM::RetrievalAugmentedGeneration::VectorDatabase;
+
+# Make random text
+my $nWords = 1000;
+my $avgWordLength = 6;
+my $text = (^$nWords).map({ ['a'...'z', '0'...'9'].flat.roll($avgWordLength + [-2..2].pick).join }).join(' ');
+
+plan *;
+
+#1
+subtest {
+    my $max-chars = 400;
+    my @para = LLM::RetrievalAugmentedGeneration::VectorDatabase::partition-words($text, :$max-chars);
+
+    is @para».chars.max ≤ 400, True, "max paragraph size";
+
+    # Test that most of the automatic paragraphs have lengths close to $max-chars
+    is @para.head(*-2)».chars.min ≥ $max-chars - $avgWordLength - 2, True, 'min paragraph size of most of them';
+}, 'splitting larger text';
+
+done-testing;
