@@ -149,15 +149,26 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         die "Not a directory: ⎡$location⎦." unless $location.d;
 
         # 2. Ingest the documents into an array
-        my @content = $location.dir.grep(*.IO.f).map(*.slurp);
+        my $content = do if %args<file-name-keys> // False {
+            $location.dir.grep(*.IO.f).map({ $_.basename => $_.slurp })
+        } else {
+            $location.dir.grep(*.IO.f).map(*.slurp)
+        }
 
         # 3. Delegate
-        return self.create-semantic-index(@content, |%args);
+        return self.create-semantic-index($content, |%args);
     }
 
     multi method create-semantic-search-index(@content, *%args) {
+        # If all pairs with unique keys make a Hash and delegate
+        if @content.all ~~ Pair:D {
+            die 'If the first argument is a list of pairs the keys have to be unique.'
+            unless @content».key.unique.elems == @content.elems;
+            return self.create-semantic-search-index(@content.Hash, |%args);
+        }
+        # Make keys and delegate
         my $nd = @content.elems.log10.ceiling;
-        self.create-semantic-search-index(
+        return self.create-semantic-search-index(
                 @content.pairs.map({ pad-zeroes($_.key, $nd) => $_.value }).Hash,
                 |%args);
     }
@@ -171,7 +182,6 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
                                               Bool:D :$embed = True,
                                               Bool:D :$export = True,
                                               *%args) {
-
         #-------------------------------------------------------------
         # Embedding function
         if &embedding-function.isa(WhateverCode) {
