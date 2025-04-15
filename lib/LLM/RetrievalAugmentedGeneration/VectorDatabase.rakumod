@@ -313,7 +313,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     multi method nearest(Str:D $text,
                          $spec,
                          :c(:carray(:$to-carray)) is copy = Whatever,
-                         :embedder(:&embedding-function) is copy = WhateverCode,
+                         :e(:embedder(:&embedding-function)) is copy = WhateverCode,
                          *%args) {
 
 
@@ -370,9 +370,9 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             $vec is copy where $vec ~~ Positional:D && $vec.all ~~ Numeric:D,
             $spec,
             :c(:carray(:$to-carray)) is copy = Whatever,
-            :$distance-function is copy = Whatever,
-            :$method is copy = Whatever,
-            :$prop is copy = Whatever,
+            :d(:$distance-function) is copy = Whatever,
+            :m(:$method) is copy = Whatever,
+            :props(:properties(:$prop)) is copy = Whatever,
             UInt :$degree = 1,
             :$batch = Whatever) {
         if !%!vectors {
