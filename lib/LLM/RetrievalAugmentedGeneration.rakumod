@@ -65,6 +65,7 @@ sub get-source-file($source) {
 # Create semantic search index
 #===========================================================
 #| Create semantic search index for a given source.
+#| The first argument can be a directory (IO::Path), an array of strings, or a Map with values that are strings.
 our proto sub create-semantic-search-index($source, |) is export {*}
 
 multi sub create-semantic-search-index($source, *%args) {
@@ -213,6 +214,11 @@ sub vector-database-objects($dirname is copy = Whatever,
 #===========================================================
 # Join
 #===========================================================
+#| Join a list of vector databases into one vector database.
+#| C<+@objs> -- Objects to join.
+#| C<:$name> -- Name of the joined vector database. If C<Whatever> then a composed name is made.
+#| c<:$strict-check> -- Should strict checking for joining be made or not?
+#| Strict checking means that the embedding configurations used to create the vector databases match.
 proto sub vector-database-join(|) is export {*}
 
 multi sub vector-database-join(+@objs where @objs.all ~~ LLM::RetrievalAugmentedGeneration::VectorDatabase:D,
