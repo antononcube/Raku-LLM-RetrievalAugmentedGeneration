@@ -218,7 +218,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         # 1. Split documents into text chunks
         # 1.1. Heuristic paragraphs
         # 1.2. Tokens-count based splitting
-        # 1.3. Do nothing is $method is 'asis'
+        # 1.3. Do nothing if $method is 'asis'
         my %chunks;
         if $method.isa(Whatever) { $method = 'heuristic' }
 
@@ -271,10 +271,13 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             my @knownParamNames = Empty;
             @knownParamNames = try &embedding-function.candidates.map({ $_.signature.params.map({ $_.usage-name }) }).flat;
 
+            # Embedding function arguments
+            my %embArgs = %args.grep({ $_.key ∈ @knownParamNames });
+
             @vector-embeddings = do if 'llm-evaluator' ∈ @knownParamNames {
-                &embedding-function(@verified-chunks, :$llm-evaluator)
+                &embedding-function(@verified-chunks, :$llm-evaluator, |%embArgs)
             } else {
-                &embedding-function(@verified-chunks)
+                &embedding-function(@verified-chunks, |%embArgs)
             }
 
             die "Did not obtain embedding vectors for all text chunks."
