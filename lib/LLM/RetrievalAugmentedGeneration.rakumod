@@ -6,6 +6,7 @@ use XDG::BaseDirectory :terms;
 use LLM::Functions;
 use LLM::RetrievalAugmentedGeneration::VectorDatabase;
 use JSON::Fast;
+use NativeCall;
 
 our sub resources {
     %?RESOURCES
@@ -265,7 +266,7 @@ multi sub vector-database-answer(
         when $_ ~~ Str:D { $_ }
         when $_ ~~ (Array:D | List::D | Seq:D) && $_.all ~~ Str:D { $_.join("\n") }
         when $_ ~~ (Array:D | List::D | Seq:D) && $_.all ~~ Numeric:D { $_».Num.Array }
-        when $_ ~~ CArray:D { $_ }
+        when $_ ~~ (CArray[num] | CArray[num32] | CArray[num64]) { $_ }
         default {
             die "The first argument is expected to be a string, a list of strings, or a numerical vector."
         }
@@ -290,7 +291,9 @@ multi sub vector-database-answer(
     my $vec = $query ~~ Str:D ?? llm-embedding($query, e => $embedding-configuration).head».Num.Array !! $query;
 
     # Find the nearest neighbors for query vector
-    my @nns = |$vdb.nearest($vec, $neighbors-count, distance-function => &euclidean-distance).flat(:hammer);
+    # Do we have to specify the distance function?
+    # Will just (distance-function => WhateverCode) work?
+    my @nns = |$vdb.nearest($vec, $neighbors-count).flat(:hammer);
 
     # Prop
     $prop = do given $prop {
