@@ -244,3 +244,79 @@ multi sub vector-database-join(*@objs, *%args) {
             ' The named argument are $name is expected to be string or Whatever.' ~
             ' The named argument $strict-check is expected to be Boolean.';
 }
+
+#===========================================================
+# Vector database answer
+#===========================================================
+#| Give an LLM based answer to a query using nearest VDB items.
+multi sub vector-database-answer(
+        $query is copy,                                                     #= Query to give answer to.
+        :vector-database(:$vdb)! is copy,                                   #= Vector database objects.
+        UInt:D :nns(:top-n(:$neighbors-count)) = 40,                        #= Number of nearest neighbor VDB items to use for the answer.
+        Bool:D :c(:$concise) = True,                                        #= Should the answer be concise or not?
+        :$prop is copy = Whatever,                                          #= Property, one of <all answer nns> or Whatever.
+        :embed-with(:embedding-conf(:$embedding-configuration)) = Whatever, #= LLM configuration used for the VDB embeddings.
+        :answer-with(:e(:$llm-evaluator)) = Whatever,                       #= LLM evaluator (or configuration) to synthesize the answer with.
+        :form(:$formatron) = 'Str',                                         #= How to format the answer.
+                  ) is export {
+
+    # Process the query argument
+    $query = do given $query {
+        when $_ ~~ Str:D { $_ }
+        when $_ ~~ (Array:D | List::D | Seq:D) && $_.all ~~ Str:D { $_.join("\n") }
+        when $_ ~~ (Array:D | List::D | Seq:D) && $_.all ~~ Numeric:D { $_».Num.Array }
+        when $_ ~~ CArray:D { $_ }
+        default {
+            die "The first argument is expected to be a string, a list of strings, or a numerical vector."
+        }
+    }
+
+    # Check VDB spec
+    die 'The vector database argument is expected to be a vector database object or a vector database identifier.'
+    unless $vdb ~~ (Str:D | LLM::RetrievalAugmentedGeneration::VectorDatabase:D);
+
+    # If VDB spec is a string get the corresponding object
+    if $vdb ~~ Str:D {
+        my @vdbs = vector-database-objects(Whatever, format => 'hash', :flat).first({ $vdb ∈ [$_<name>, $_<id>] });
+        if !@vdbs {
+            die "Cannot find a vector database with the name or id ⎡$vdb⎦.";
+        } elsif @vdbs.elems > 1 {
+            die "Multiple vector databases found with the name ⎡$vdb⎦.";
+        }
+        $vdb = create-vector-database(file => @vdbs.head<file>)
+    }
+
+    # Find the vector embedding of the query
+    my $vec = $query ~~ Str:D ?? llm-embedding($query, e => $embedding-configuration).head».Num.Array !! $query;
+
+    # Find the nearest neighbors for query vector
+    my @nns = |$vdb.nearest($vec, $neighbors-count, distance-function => &euclidean-distance).flat(:hammer);
+
+    # Prop
+    $prop = do given $prop {
+        when Whatever { 'answer' }
+        when $_ ~~ Str:D && $_.lc ∈ <answer llm-answer llmanswer text> { 'answer' }
+        when $_ ~~ Str:D && $_.lc ∈ <nns nearest-neighbors nearestneighbors> {
+            return @nns
+        }
+        when $_ ~~ Str:D && $_.lc ∈ <all nns-and-answer answer-and-nns> { 'all' }
+        default {
+            note 'Unknown property; using "all".';
+            'all'
+        }
+    }
+
+    # Synthesize the answer
+    my $answer =
+            llm-synthesize([
+                "Answer {$concise ?? 'concisely' !! '' } the inquiry:",
+                $query,
+                "using the following text:",
+                $vdb.items{|@nns.sort}.join(" "),
+            ],
+            :$llm-evaluator,
+            :$formatron
+            );
+
+    return $prop eq 'all' ?? %(:$answer, :@nns) !! $answer;
+}
