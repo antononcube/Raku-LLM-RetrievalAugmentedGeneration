@@ -1,0 +1,7 @@
+Revision history for "LLM::RetrievalAugmentedGeneration"
+
+0.0.6 2025-10-06
+    - Implemented the "all in one" function &vector-database-answer
+        - For a given Vector DataBase (VDB) and a query:
+            - Finds the top nearest neighbor vectors and corresponding items
+            - Aks an LLM to give an answer to the query using the concatenated the items
