@@ -287,6 +287,10 @@ multi sub vector-database-answer(
         $vdb = create-vector-database(file => @vdbs.head<file>)
     }
 
+    # Process configurations
+    die 'The argument :$embedding-configuration has to be an LLM configuration object.'
+    unless $embedding-configuration ~~ LLM::Functions::Configuration:D;
+
     # Find the vector embedding of the query
     my $vec = $query ~~ Str:D ?? llm-embedding($query, e => $embedding-configuration).head».Num.Array !! $query;
 
@@ -312,7 +316,7 @@ multi sub vector-database-answer(
     # Synthesize the answer
     my $answer =
             llm-synthesize([
-                "Answer {$concise ?? 'concisely' !! '' } the inquiry:",
+                "Answer {$concise ?? 'concisely ' !! '' }the inquiry:",
                 $query,
                 "using the following text:",
                 $vdb.items{|@nns.sort}.join(" "),
