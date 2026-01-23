@@ -264,8 +264,8 @@ multi sub vector-database-answer(
     # Process the query argument
     $query = do given $query {
         when $_ ~~ Str:D { $_ }
-        when $_ ~~ (Array:D | List::D | Seq:D) && $_.all ~~ Str:D { $_.join("\n") }
-        when $_ ~~ (Array:D | List::D | Seq:D) && $_.all ~~ Numeric:D { $_».Num.Array }
+        when $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Str:D { $_.join("\n") }
+        when $_ ~~ (Array:D | List:D | Seq:D) && $_.all ~~ Numeric:D { $_».Num.Array }
         when $_ ~~ (CArray[num] | CArray[num32] | CArray[num64]) { $_ }
         default {
             die "The first argument is expected to be a string, a list of strings, or a numerical vector."

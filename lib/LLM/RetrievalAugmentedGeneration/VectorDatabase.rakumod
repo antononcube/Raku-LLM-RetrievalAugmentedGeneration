@@ -281,11 +281,11 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             }
 
             die "Did not obtain embedding vectors for all text chunks."
-            unless @vector-embeddings.all ~~ (Array:D | List::D | Seq:D);
+            unless @vector-embeddings.all ~~ (Array:D | List:D | Seq:D);
 
             if $to-carray {
                 @vector-embeddings .= map({
-                    $_ ~~ (Array:D | List::D | Seq:D) ?? CArray[$!num-type].new($_».Num) !! $_
+                    $_ ~~ (Array:D | List:D | Seq:D) ?? CArray[$!num-type].new($_».Num) !! $_
                 });
             }
         }
