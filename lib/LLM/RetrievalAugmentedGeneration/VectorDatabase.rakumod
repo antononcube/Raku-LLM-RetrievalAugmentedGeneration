@@ -444,14 +444,18 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
 
         return self if !$obj.vectors.elems;
 
+        # Are all keys different?
+        my Bool:D $commonKeys = (%!vectors.keys (&) $obj.vectors.keys).elems > 0;
+        
         # Should the key structure assumption be verified?
 
         my $offset = %!vectors.elems;
         my $nd = ceiling(log10(%!vectors.elems + $obj.vectors.elems));
         sub joined-key(Str:D $key, UInt:D $offset) {
+            return $key if !$commonKeys;
             my ($p, $c) = try $key.split('.', 2);
             if $! {
-                note "Not all keys have the expected pattern: rx/ \\d+ '.' \\d+ / .";
+                note "When the vector dabases have common vector keys then all keys are expected to have the pattern: rx/ \\d+ '.' \\d+ / .";
                 return fail;
             }
             my $new-key = pad-zeroes($p.Int + $offset, $nd) ~ '.' ~ $c;
