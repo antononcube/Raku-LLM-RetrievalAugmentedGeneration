@@ -218,7 +218,7 @@ sub vector-database-objects($dirname is copy = Whatever,
 #| Join a list of vector databases into one vector database.
 #| C<+@objs> -- Objects to join.
 #| C<:$name> -- Name of the joined vector database. If C<Whatever> then a composed name is made.
-#| c<:$strict-check> -- Should strict checking for joining be made or not?
+#| C<:$strict-check> -- Should strict checking for joining be made or not?
 #| Strict checking means that the embedding configurations used to create the vector databases match.
 proto sub vector-database-join(|) is export {*}
 
