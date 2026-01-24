@@ -442,6 +442,8 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
         die 'LLM configurations do not match.'
         if $strict-check && (!%!vectors.elems || !($!llm-configuration eqv $obj.llm-configuration));
 
+        return self if !$obj.vectors.elems;
+
         # Should the key structure assumption be verified?
 
         my $offset = %!vectors.elems;
