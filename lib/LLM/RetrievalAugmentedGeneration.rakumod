@@ -242,7 +242,7 @@ multi sub vector-database-join(+@objs where @objs.all ~~ LLM::RetrievalAugmented
 
 multi sub vector-database-join(*@objs, *%args) {
     note 'The positional arguments are expected to be vector database objects.' ~
-            ' The named argument are $name is expected to be string or Whatever.' ~
+            ' The named argument $name is expected to be string or Whatever.' ~
             ' The named argument $strict-check is expected to be Boolean.';
 }
 
