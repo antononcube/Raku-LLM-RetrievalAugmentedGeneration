@@ -252,7 +252,7 @@ multi sub vector-database-join(*@objs, *%args) {
 #| Give an LLM based answer to a query using nearest VDB items.
 multi sub vector-database-answer(
         $query is copy,                                                     #= Query to give answer to.
-        :vector-database(:$vdb)! is copy,                                   #= Vector database objects.
+        :vector-database(:$vdb)! is copy,                                   #= Vector database object.
         UInt:D :nns(:top-n(:$neighbors-count)) = 40,                        #= Number of nearest neighbor VDB items to use for the answer.
         Bool:D :c(:$concise) = True,                                        #= Should the answer be concise or not?
         :$prop is copy = Whatever,                                          #= Property, one of <all answer nns> or Whatever.
