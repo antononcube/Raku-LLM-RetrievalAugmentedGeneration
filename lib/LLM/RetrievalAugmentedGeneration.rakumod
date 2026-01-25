@@ -104,7 +104,7 @@ multi sub create-vector-database(*%args) {
 #| C<$obj> Vector database.
 #| C<$query> A vector compatible with the database or a string.
 #| C<$spec> Number of nearest neighbors or C<(count, radius)> spec.
-our proto sub vector-database-search(LLM::RetrievalAugmentedGeneration::VectorDatabase $obj, $query) is export {*}
+our proto sub vector-database-search(LLM::RetrievalAugmentedGeneration::VectorDatabase $obj, $query, $spec, *%args) is export {*}
 
 multi sub vector-database-search(LLM::RetrievalAugmentedGeneration::VectorDatabase $obj, $query, $spec, *%args) {
     return $obj.nearest($query, $spec, |%args);
