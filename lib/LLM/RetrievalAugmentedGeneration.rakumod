@@ -49,12 +49,17 @@ sub get-source-file($source) {
         when ($_ ~~ IO::Path:D) && $_.f { return $_; }
         when ($_ ~~ Str:D) && $_.IO.e && $_.IO.f { return $_.IO; }
         when Str:D {
+            my $file = IO::Path.new(dirname => default-location, basename => $source);
+            return $file if $file.f;
+
             # from basename
             for <cbor json> -> $ext {
-                my $file = IO::Path.new(dirname => default-location, basename => $source ~ '.' ~ $ext);
+                my $basename = $source ~ '.' ~ $ext;
+
+                my $file = IO::Path.new(dirname => default-location, :$basename);
                 return $file if $file.f;
 
-                $file = IO::Path.new(dirname => default-location, basename => 'SemSe-' ~ $source ~ '.' ~ $ext);
+                $file = IO::Path.new(dirname => default-location, :$basename);
                 return $file if $file.f;
             }
         }
