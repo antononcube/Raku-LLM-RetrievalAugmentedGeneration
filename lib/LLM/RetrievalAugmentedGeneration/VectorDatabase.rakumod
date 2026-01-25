@@ -316,7 +316,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
     multi method nearest(Str:D $text,
                          $spec,
                          :c(:carray(:$to-carray)) is copy = Whatever,
-                         :e(:embedder(:&embedding-function)) is copy = WhateverCode,
+                         :embedder(:&embedding-function) is copy = WhateverCode,
                          *%args) {
 
 
@@ -379,7 +379,7 @@ class LLM::RetrievalAugmentedGeneration::VectorDatabase {
             UInt :$degree = 1,
             :$batch = Whatever) {
         if !%!vectors {
-            note "The vector database is empty";
+            note "The vector database is empty.";
             return Nil;
         }
 
