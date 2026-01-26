@@ -1,5 +1,12 @@
 Revision history for "LLM::RetrievalAugmentedGeneration"
 
+0.0.8 2026-01-26
+    - Allowing merging of vector databases if they have _arbitrary_ vector keys but none in common.
+        - Up to version 0.0.7 the vector keys were expected to be in the form "<integer>.<integer>".
+    - Handling source specs that are actual base file names.
+        - Meaning, names like "SemSe-697d16a0.json" can be used, not just "SemSe-697d16a0".
+    - Various "small fixes" for streamlined usage or expected behavior.
+
 0.0.7 2026-01-22
     - Fix: Proper type check for List:D.
 
